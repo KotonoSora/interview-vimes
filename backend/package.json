@@ -4,6 +4,11 @@
   "description": "Enterprise Backend API for Goods Receipt Management (Mẫu 01 - VT)",
   "main": "dist/app.js",
   "type": "module",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:KotonoSora/interview-vimes.git"
+  },
   "scripts": {
     "dev": "node --watch src/app.ts",
     "build": "tsc",
@@ -34,5 +39,8 @@
     "@types/pg": "8.23.1",
     "typescript": "7.0.2",
     "vitest": "4.1.11"
+  },
+  "engines": {
+    "node": "24.19.0"
   }
 }
