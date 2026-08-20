@@ -68,7 +68,7 @@ describe("[Presentation - Middleware] Centralized Error Handling", () => {
 
     let zodErr: ZodError | null = null;
     try {
-      testSchema.parse({});
+      testSchema.parse({ receiptNumber: "" });
     } catch (e) {
       zodErr = e as ZodError;
     }
