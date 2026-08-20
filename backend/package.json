@@ -1,22 +1,22 @@
 {
   "name": "vimes-inventory-backend",
   "version": "1.0.0",
-  "description": "Enterprise Backend API for Goods Receipt Management (Mẫu 01 - VT)",
-  "main": "dist/app.js",
-  "type": "module",
   "private": true,
+  "description": "Enterprise Backend API for Goods Receipt Management (Mẫu 01 - VT)",
   "repository": {
     "type": "git",
     "url": "git@github.com:KotonoSora/interview-vimes.git"
   },
+  "type": "module",
+  "main": "dist/app.js",
   "scripts": {
-    "dev": "node --watch src/app.ts",
+    "audit:fix": "npm audit fix",
     "build": "tsc",
+    "dev": "node --watch src/app.ts",
     "start": "node dist/app.js",
     "test": "vitest run",
     "test:coverage": "vitest --coverage",
-    "test:watch": "vitest",
-    "audit:fix": "npm audit fix"
+    "test:watch": "vitest"
   },
   "dependencies": {
     "cors": "2.8.6",
