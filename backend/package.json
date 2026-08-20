@@ -15,7 +15,7 @@
     "dev": "node --watch src/app.ts",
     "start": "node dist/app.js",
     "test": "vitest run",
-    "test:coverage": "vitest --coverage",
+    "test:coverage": "vitest run --coverage",
     "test:watch": "vitest"
   },
   "dependencies": {
@@ -37,6 +37,7 @@
     "@types/morgan": "1.9.10",
     "@types/node": "24.13.3",
     "@types/pg": "8.23.1",
+    "@vitest/coverage-v8": "4.1.11",
     "typescript": "7.0.2",
     "vitest": "4.1.11"
   },

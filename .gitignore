@@ -47,7 +47,7 @@ dist-ssr
 /sonar-project.properties
 
 # Vitest
-/coverage/
+coverage/
 
 # Other
 .npmrc
