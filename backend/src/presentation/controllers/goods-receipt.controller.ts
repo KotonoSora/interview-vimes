@@ -1,6 +1,5 @@
 // src/presentation/controllers/goods-receipt.controller.ts
-import { Response, NextFunction } from "express";
-import { RequestWithId } from "#/presentation/middlewares/request-id.middleware";
+import { Request, Response, NextFunction } from "express";
 import { CreateGoodsReceiptUseCase } from "#/application/use-cases/create-goods-receipt.use-case";
 import { UpdateGoodsReceiptUseCase } from "#/application/use-cases/update-goods-receipt.use-case";
 import { DeleteGoodsReceiptUseCase } from "#/application/use-cases/delete-goods-receipt.use-case";
@@ -15,28 +14,91 @@ export class GoodsReceiptController {
     private readonly deleteUseCase: DeleteGoodsReceiptUseCase,
   ) {}
 
-  public create = async (
-    req: RequestWithId,
+  /**
+   * GET /api/v1/goods-receipts
+   * Lấy danh sách phiếu nhập kho phân trang (Loại trừ chứng từ đã hủy CANCELLED)
+   */
+  public getList = async (
+    req: Request,
     res: Response,
     next: NextFunction,
   ): Promise<void> => {
     try {
-      const validatedDTO = CreateGoodsReceiptSchema.parse(req.body);
-      const result = await this.createUseCase.execute(validatedDTO, req.id);
+      const page = Math.max(1, parseInt(req.query.page as string) || 1);
+      const limit = Math.min(
+        100,
+        Math.max(1, parseInt(req.query.limit as string) || 10),
+      );
+      const offset = (page - 1) * limit;
 
-      res.status(201).json({
+      const countSql = `
+        SELECT COUNT(*) AS total 
+        FROM goods_receipts 
+        WHERE status != 'CANCELLED';
+      `;
+
+      const dataSql = `
+        SELECT 
+          gr.id, 
+          gr.receipt_number, 
+          gr.receipt_date, 
+          gr.actual_received_date, 
+          gr.receipt_type,
+          gr.deliverer_name, 
+          gr.doc_reference,
+          gr.debit_account,
+          gr.credit_account,
+          gr.total_amount, 
+          gr.status, 
+          gr.created_at,
+          json_build_object(
+            'id', org.id, 
+            'name', org.name,
+            'department', org.department
+          ) AS organization,
+          json_build_object(
+            'id', wh.id, 
+            'name', wh.name,
+            'location', wh.location
+          ) AS warehouse
+        FROM goods_receipts gr
+        INNER JOIN organizations org ON gr.organization_id = org.id
+        INNER JOIN warehouses wh ON gr.warehouse_id = wh.id
+        WHERE gr.status != 'CANCELLED'
+        ORDER BY gr.created_at DESC
+        LIMIT $1 OFFSET $2;
+      `;
+
+      const [countResult, dataResult] = await Promise.all([
+        pool.query(countSql),
+        pool.query(dataSql, [limit, offset]),
+      ]);
+
+      const totalItems = parseInt(countResult.rows[0].total, 10);
+      const totalPages = Math.ceil(totalItems / limit);
+
+      res.status(200).json({
         success: true,
-        message: "Lập phiếu nhập kho thành công (Mẫu 01 - VT)",
         requestId: req.id,
-        data: result,
+        pagination: {
+          page,
+          limit,
+          totalItems,
+          totalPages,
+        },
+        data: dataResult.rows,
       });
     } catch (error) {
       next(error);
     }
   };
 
+  /**
+   * GET /api/v1/goods-receipts/:id
+   * Lấy toàn bộ chi tiết Phiếu Nhập Kho theo đúng cấu trúc Mẫu 01 - VT
+   */
   public getDetail = async (
-    req: RequestWithId,
+    req: Request,
     res: Response,
     next: NextFunction,
   ): Promise<void> => {
@@ -44,20 +106,53 @@ export class GoodsReceiptController {
       const id = req.params.id as string;
       const sql = `
         SELECT 
-          gr.id, gr.receipt_number, gr.receipt_date, gr.actual_received_date, gr.receipt_type,
-          gr.description, gr.deliverer_name, gr.doc_reference, gr.doc_date, gr.doc_origin,
-          gr.debit_account, gr.credit_account, gr.total_amount, gr.total_amount_words,
-          gr.attached_doc_count, gr.creator_name, gr.storekeeper_name, gr.chief_accountant_name, gr.status,
-          json_build_object('id', org.id, 'name', org.name, 'department', org.department) AS organization,
-          json_build_object('id', wh.id, 'name', wh.name, 'location', wh.location) AS warehouse,
+          gr.id, 
+          gr.receipt_number, 
+          gr.receipt_date, 
+          gr.actual_received_date, 
+          gr.receipt_type,
+          gr.description, 
+          gr.deliverer_name, 
+          gr.doc_reference, 
+          gr.doc_date, 
+          gr.doc_origin,
+          gr.debit_account, 
+          gr.credit_account, 
+          gr.total_amount, 
+          gr.total_amount_words,
+          gr.attached_doc_count, 
+          gr.creator_name, 
+          gr.storekeeper_name, 
+          gr.chief_accountant_name, 
+          gr.status,
+          gr.created_at,
+          gr.updated_at,
+          json_build_object(
+            'id', org.id, 
+            'name', org.name, 
+            'department', org.department
+          ) AS organization,
+          json_build_object(
+            'id', wh.id, 
+            'name', wh.name, 
+            'location', wh.location
+          ) AS warehouse,
           COALESCE(
             json_agg(
               json_build_object(
-                'id', gri.id, 'lineNo', gri.line_no, 'productId', gri.product_id,
-                'productCode', p.code, 'productName', gri.product_name_snapshot,
-                'unit', gri.unit_snapshot, 'docQty', gri.doc_qty, 'actualQty', gri.actual_qty,
-                'unitPrice', gri.unit_price, 'amount', gri.amount,
-                'debitAccount', gri.debit_account, 'creditAccount', gri.credit_account, 'note', gri.note
+                'id', gri.id, 
+                'lineNo', gri.line_no, 
+                'productId', gri.product_id,
+                'productCode', p.code, 
+                'productName', gri.product_name_snapshot,
+                'unit', gri.unit_snapshot, 
+                'docQty', gri.doc_qty, 
+                'actualQty', gri.actual_qty,
+                'unitPrice', gri.unit_price, 
+                'amount', gri.amount,
+                'debitAccount', gri.debit_account, 
+                'creditAccount', gri.credit_account, 
+                'note', gri.note
               ) ORDER BY gri.line_no ASC
             ) FILTER (WHERE gri.id IS NOT NULL), '[]'::json
           ) AS items
@@ -90,8 +185,34 @@ export class GoodsReceiptController {
     }
   };
 
+  /**
+   * POST /api/v1/goods-receipts
+   */
+  public create = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const validatedDTO = CreateGoodsReceiptSchema.parse(req.body);
+      const result = await this.createUseCase.execute(validatedDTO, req.id);
+
+      res.status(201).json({
+        success: true,
+        message: "Lập phiếu nhập kho thành công (Mẫu 01 - VT)",
+        requestId: req.id,
+        data: result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  /**
+   * PUT /api/v1/goods-receipts/:id
+   */
   public update = async (
-    req: RequestWithId,
+    req: Request,
     res: Response,
     next: NextFunction,
   ): Promise<void> => {
@@ -111,8 +232,11 @@ export class GoodsReceiptController {
     }
   };
 
+  /**
+   * DELETE /api/v1/goods-receipts/:id
+   */
   public delete = async (
-    req: RequestWithId,
+    req: Request,
     res: Response,
     next: NextFunction,
   ): Promise<void> => {

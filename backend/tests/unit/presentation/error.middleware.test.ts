@@ -1,11 +1,10 @@
 // tests/unit/presentation/error.middleware.test.ts
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { Response, NextFunction } from "express";
+import { Request, Response, NextFunction } from "express";
 import { ZodError, z } from "zod";
-import { RequestWithId } from "#/presentation/middlewares/request-id.middleware";
 
 describe("[Presentation - Middleware] Centralized Error Handling", () => {
-  let req: RequestWithId;
+  let req: Request;
   let res: Response;
   let next: NextFunction;
   let statusMock: any;
@@ -15,7 +14,7 @@ describe("[Presentation - Middleware] Centralized Error Handling", () => {
   const createErrorHandler = () => {
     return (
       err: any,
-      request: RequestWithId,
+      request: Request,
       response: Response,
       _next: NextFunction,
     ) => {
@@ -47,7 +46,7 @@ describe("[Presentation - Middleware] Centralized Error Handling", () => {
   };
 
   beforeEach(() => {
-    req = { id: "req-trace-uuid-123" } as RequestWithId;
+    req = { id: "req-trace-uuid-123" } as unknown as Request;
     jsonMock = vi.fn();
     statusMock = vi.fn().mockReturnValue({ json: jsonMock });
     res = {

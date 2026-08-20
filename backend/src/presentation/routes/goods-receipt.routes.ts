@@ -22,6 +22,7 @@ const controller = new GoodsReceiptController(
   deleteUseCase,
 );
 
+goodsReceiptRouter.get("/", controller.getList);
 goodsReceiptRouter.post("/", controller.create);
 goodsReceiptRouter.get("/:id", controller.getDetail);
 goodsReceiptRouter.put("/:id", controller.update);
