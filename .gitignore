@@ -57,6 +57,7 @@ yarn.lock
 bun.lockb
 bun.lock
 .env
+.env.test
 .dev.vars
 
 # React Router

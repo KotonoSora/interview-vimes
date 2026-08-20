@@ -1,3 +1,13 @@
 {
-  "cSpell.words": ["dtos"]
+  "cSpell.words": [
+    "dtos",
+    "healthcheck",
+    "initdb",
+    "isready",
+    "Millis",
+    "pgcrypto",
+    "pgdata",
+    "vimes",
+    "Vitest"
+  ]
 }
