@@ -81,7 +81,7 @@ export function ReceiptItemsTable({
       ...prev,
       {
         productId: p?.id || "",
-        productNameSnapshot: p?.name || "",
+        productNameSnapshot: p?.name || "Vật tư",
         unitSnapshot: p?.unit || "Cái",
         docQty: 1,
         actualQty: 1,
@@ -104,11 +104,11 @@ export function ReceiptItemsTable({
   );
 
   return (
-    <Card className="overflow-hidden">
+    <Card className="overflow-hidden shadow-sm">
       <CardHeader className="py-2.5 px-4 border-b flex flex-row items-center justify-between">
         <CardTitle className="text-xs font-semibold flex items-center gap-2">
-          <Package className="h-4 w-4 text-primary" /> Danh Sách Vật Tư (
-          {items.length})
+          <Package className="h-4 w-4 text-primary" /> Danh Sách Vật Tư Thực
+          Nhập ({items.length})
         </CardTitle>
         <Button
           size="sm"
@@ -117,106 +117,147 @@ export function ReceiptItemsTable({
           type="button"
           className="h-7 text-xs"
         >
-          <Plus className="h-3 w-3 mr-1" /> Thêm dòng
+          <Plus className="h-3.5 w-3.5 mr-1" /> Thêm dòng
         </Button>
       </CardHeader>
       <CardContent className="p-0 overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/40 text-xs">
-              <TableHead className="w-10 text-center">STT</TableHead>
-              <TableHead className="min-w-[200px]">Vật tư / Hàng hóa</TableHead>
-              <TableHead className="w-16 text-center">ĐVT</TableHead>
-              <TableHead className="w-24 text-right">SL C.Từ</TableHead>
-              <TableHead className="w-24 text-right">SL Thực</TableHead>
-              <TableHead className="w-28 text-right">Đơn giá</TableHead>
-              <TableHead className="w-32 text-right">Thành tiền</TableHead>
+              <TableHead className="w-10 text-center font-semibold">
+                STT
+              </TableHead>
+              <TableHead className="min-w-[280px] font-semibold">
+                Tên, quy cách vật tư / hàng hóa
+              </TableHead>
+              <TableHead className="w-20 text-center font-semibold">
+                ĐVT
+              </TableHead>
+              <TableHead className="w-28 text-right font-semibold">
+                SL Chứng từ
+              </TableHead>
+              <TableHead className="w-28 text-right font-semibold">
+                SL Thực nhập
+              </TableHead>
+              <TableHead className="w-32 text-right font-semibold">
+                Đơn giá (VNĐ)
+              </TableHead>
+              <TableHead className="w-36 text-right font-semibold">
+                Thành tiền
+              </TableHead>
               <TableHead className="w-10 text-center"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {items.map((row, idx) => (
-              <TableRow key={idx} className="hover:bg-muted/20">
-                <TableCell className="text-center text-xs">{idx + 1}</TableCell>
-                <TableCell>
-                  <Select
-                    value={row.productId}
-                    onValueChange={(val) =>
-                      val && handleProductChange(idx, val)
-                    }
-                  >
-                    <SelectTrigger className="h-7 text-xs">
-                      <SelectValue placeholder="Chọn hàng" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {products.map((p) => (
-                        <SelectItem key={p.id} value={p.id} className="text-xs">
-                          {p.code} - {p.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </TableCell>
-                <TableCell className="text-center text-xs text-muted-foreground">
-                  {row.unitSnapshot}
-                </TableCell>
-                <TableCell>
-                  <Input
-                    type="number"
-                    min="0"
-                    step="0.001"
-                    value={row.docQty}
-                    onChange={(e) =>
-                      handleChange(idx, "docQty", Number(e.target.value))
-                    }
-                    className="h-7 text-xs text-right font-mono"
-                  />
-                </TableCell>
-                <TableCell>
-                  <Input
-                    type="number"
-                    min="0"
-                    step="0.001"
-                    value={row.actualQty}
-                    onChange={(e) =>
-                      handleChange(idx, "actualQty", Number(e.target.value))
-                    }
-                    className="h-7 text-xs text-right font-mono font-medium"
-                  />
-                </TableCell>
-                <TableCell>
-                  <Input
-                    type="number"
-                    min="0"
-                    step="100"
-                    value={row.unitPrice}
-                    onChange={(e) =>
-                      handleChange(idx, "unitPrice", Number(e.target.value))
-                    }
-                    className="h-7 text-xs text-right font-mono"
-                  />
-                </TableCell>
-                <TableCell className="text-right font-mono font-semibold text-xs text-primary">
-                  {formatCurrencyVND(
-                    Number(row.actualQty || 0) * Number(row.unitPrice || 0),
-                  )}
-                </TableCell>
-                <TableCell className="text-center">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    type="button"
-                    onClick={() => removeItem(idx)}
-                    disabled={items.length <= 1}
-                    className="h-6 w-6 text-muted-foreground hover:text-destructive"
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
+            {items.map((row, idx) => {
+              const selectedProduct = products.find(
+                (p) => p.id === row.productId,
+              );
+              const displayName = selectedProduct
+                ? `${selectedProduct.code ? `[${selectedProduct.code}] ` : ""}${selectedProduct.name}`
+                : row.productNameSnapshot || "Chọn vật tư...";
+
+              return (
+                <TableRow key={idx} className="hover:bg-muted/20">
+                  <TableCell className="text-center text-xs font-medium">
+                    {idx + 1}
+                  </TableCell>
+
+                  {/* Dropdown hiển thị Tên và Mã sản phẩm rõ ràng */}
+                  <TableCell>
+                    <Select
+                      value={row.productId}
+                      onValueChange={(val) =>
+                        val && handleProductChange(idx, val)
+                      }
+                    >
+                      <SelectTrigger className="h-8 text-xs font-medium w-full text-left truncate">
+                        <span className="truncate">{displayName}</span>
+                      </SelectTrigger>
+                      <SelectContent className="max-h-60">
+                        {products.map((p) => (
+                          <SelectItem
+                            key={p.id}
+                            value={p.id}
+                            className="text-xs"
+                          >
+                            <span className="font-mono font-semibold text-primary mr-1.5">
+                              [{p.code}]
+                            </span>
+                            <span>{p.name}</span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </TableCell>
+
+                  <TableCell className="text-center text-xs text-muted-foreground font-medium">
+                    {row.unitSnapshot || selectedProduct?.unit || "—"}
+                  </TableCell>
+
+                  <TableCell>
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.001"
+                      value={row.docQty}
+                      onChange={(e) =>
+                        handleChange(idx, "docQty", Number(e.target.value))
+                      }
+                      className="h-8 text-xs text-right font-mono"
+                    />
+                  </TableCell>
+
+                  <TableCell>
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.001"
+                      value={row.actualQty}
+                      onChange={(e) =>
+                        handleChange(idx, "actualQty", Number(e.target.value))
+                      }
+                      className="h-8 text-xs text-right font-mono font-semibold"
+                    />
+                  </TableCell>
+
+                  <TableCell>
+                    <Input
+                      type="number"
+                      min="0"
+                      step="100"
+                      value={row.unitPrice}
+                      onChange={(e) =>
+                        handleChange(idx, "unitPrice", Number(e.target.value))
+                      }
+                      className="h-8 text-xs text-right font-mono"
+                    />
+                  </TableCell>
+
+                  <TableCell className="text-right font-mono font-bold text-xs text-primary whitespace-nowrap">
+                    {formatCurrencyVND(
+                      Number(row.actualQty || 0) * Number(row.unitPrice || 0),
+                    )}
+                  </TableCell>
+
+                  <TableCell className="text-center">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      type="button"
+                      onClick={() => removeItem(idx)}
+                      disabled={items.length <= 1}
+                      className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
+
         <div className="p-3 bg-muted/20 border-t flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-xs">
           <div className="italic text-muted-foreground">
             Bằng chữ:{" "}
@@ -226,7 +267,7 @@ export function ReceiptItemsTable({
           </div>
           <div className="flex items-center gap-2 font-mono">
             <span className="font-semibold text-muted-foreground uppercase text-[11px]">
-              Tổng tiền:
+              Tổng tiền thanh toán:
             </span>
             <span className="text-sm font-bold text-primary">
               {formatCurrencyVND(total)}

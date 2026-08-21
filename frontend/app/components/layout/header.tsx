@@ -1,7 +1,6 @@
-import { Bell, ChevronRight, User } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 
 import { Badge } from "~/components/ui/badge";
-import { Button } from "~/components/ui/button";
 
 interface HeaderProps {
   title?: string;
@@ -29,35 +28,17 @@ export function Header({
         </div>
       </div>
 
-      {/* Right Action Tools */}
+      {/* Right Action Tools - Chỉ giữ thông tin tài chính chuẩn */}
       <div className="flex items-center gap-3">
         <Badge
           variant="outline"
-          className="hidden md:inline-flex text-xs bg-muted/50"
+          className="text-xs bg-muted/50 font-mono font-medium"
         >
           Năm tài chính: 2026
         </Badge>
-
-        <Button
-          variant="ghost"
-          size="icon"
-          className="relative text-muted-foreground"
-        >
-          <Bell className="h-4 w-4" />
-          <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-primary"></span>
-        </Button>
-
-        <div className="flex items-center gap-2 pl-3 border-l">
-          <div className="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-medium text-xs">
-            <User className="h-4 w-4" />
-          </div>
-          <div className="hidden lg:block text-left">
-            <div className="text-xs font-medium">Kế toán viên</div>
-            <div className="text-[10px] text-muted-foreground">
-              sa-team@vimes.vn
-            </div>
-          </div>
-        </div>
+        <Badge variant="secondary" className="text-[11px] font-mono">
+          Mẫu số 01 - VT
+        </Badge>
       </div>
     </header>
   );

@@ -1,8 +1,15 @@
-import { ArrowLeft, FileSpreadsheet, Loader2, Save } from "lucide-react";
+import {
+  AlertCircle,
+  ArrowLeft,
+  FileSpreadsheet,
+  Loader2,
+  Save,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { data, useFetcher, useLoaderData, useNavigate } from "react-router";
+import { z } from "zod";
 
-import type { Route } from "./+types/_app.goods-receipts.$id.edit";
+import type { Route } from "./+types/_app.goods-receipts.$id_.edit";
 
 import type { ReceiptItemRow } from "~/components/goods-receipt/receipt-items-table";
 import type { UpdateGoodsReceiptRequest } from "~/types/goods-receipt.types";
@@ -32,7 +39,7 @@ import { UpdateGoodsReceiptSchema } from "~/types/goods-receipt.types";
 
 export function meta({ matches }: Route.MetaArgs) {
   const match = matches?.find(
-    (m) => m?.id === "routes/_app.goods-receipts.$id.edit",
+    (m) => m?.id === "routes/_app.goods-receipts.$id_.edit",
   );
   const d = (match && "loaderData" in match ? match.loaderData : undefined) as
     { receipt?: { receiptNumber?: string } } | undefined;
@@ -52,7 +59,7 @@ export const middleware = [traceAndAuthMiddleware];
 export async function loader({ params, context }: Route.LoaderArgs) {
   const requestId = context.get(requestIdContext) || crypto.randomUUID();
   const id = params.id;
-  if (!id) throw new Response("Mã không hợp lệ", { status: 400 });
+  if (!id) throw new Response("Mã chứng từ không hợp lệ", { status: 400 });
 
   const [receiptRes, orgsRes, warehousesRes, productsRes] = await Promise.all([
     receiptService.getReceiptById(id, requestId),
@@ -64,7 +71,9 @@ export async function loader({ params, context }: Route.LoaderArgs) {
   if (!receiptRes.data)
     throw new Response("Chứng từ không tồn tại", { status: 404 });
   if (receiptRes.data.status === "CANCELLED")
-    throw new Response("Không thể sửa phiếu đã HỦY", { status: 422 });
+    throw new Response("Không thể chỉnh sửa phiếu đã ở trạng thái CANCELLED", {
+      status: 422,
+    });
 
   return {
     receipt: receiptRes.data,
@@ -79,7 +88,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   const id = params.id;
   if (!id)
     return data(
-      { success: false, message: "Mã không hợp lệ" },
+      { success: false, message: "Mã chứng từ không hợp lệ" },
       { status: 400 },
     );
 
@@ -89,6 +98,16 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     await receiptService.updateReceipt(id, parsedData, requestId);
     return data({ success: true, message: "Cập nhật chứng từ thành công" });
   } catch (error: unknown) {
+    console.error("❌ Lỗi Action Edit Receipt:", error);
+    if (error instanceof z.ZodError) {
+      const issueMsgs = error.issues
+        .map((i) => `${i.path.join(".")}: ${i.message}`)
+        .join("; ");
+      return data(
+        { success: false, message: `Lỗi xác thực dữ liệu: ${issueMsgs}` },
+        { status: 400 },
+      );
+    }
     const message =
       error instanceof Error ? error.message : "Không thể cập nhật chứng từ";
     return data({ success: false, message }, { status: 400 });
@@ -110,7 +129,9 @@ export default function EditGoodsReceiptRoute() {
   const [warehouseId, setWarehouseId] = useState(
     receipt.warehouseId || receipt.warehouse?.id || warehouses[0]?.id || "",
   );
-  const [receiptDate, setReceiptDate] = useState(receipt.receiptDate || "");
+  const [receiptDate, setReceiptDate] = useState(
+    receipt.receiptDate || new Date().toISOString().split("T")[0],
+  );
   const [receiptType, setReceiptType] = useState<
     UpdateGoodsReceiptRequest["receiptType"]
   >(receipt.receiptType || "PURCHASE");
@@ -128,20 +149,38 @@ export default function EditGoodsReceiptRoute() {
     receipt.creditAccount || "331",
   );
 
-  // Chuẩn hóa nạp items từ response
-  const [items, setItems] = useState<ReceiptItemRow[]>(
-    (receipt.items || []).map((i) => ({
-      productId: i.productId,
-      productNameSnapshot: i.productNameSnapshot || i.productName || "",
-      unitSnapshot: i.unitSnapshot || i.unit || "Cái",
+  // Nạp danh sách dòng hàng có thể chỉnh sửa
+  const [items, setItems] = useState<ReceiptItemRow[]>(() => {
+    const rawItems = receipt.items || [];
+    if (rawItems.length === 0) {
+      const p = products[0];
+      return [
+        {
+          productId: p?.id || "",
+          productNameSnapshot: p?.name || "Vật tư",
+          unitSnapshot: p?.unit || "Cái",
+          docQty: 1,
+          actualQty: 1,
+          unitPrice: p?.defaultPrice || 0,
+          debitAccount: "152",
+          creditAccount: "331",
+          note: "",
+        },
+      ];
+    }
+    return rawItems.map((i) => ({
+      productId: i.productId || products[0]?.id || "",
+      productNameSnapshot:
+        i.productNameSnapshot || i.productName || products[0]?.name || "Vật tư",
+      unitSnapshot: i.unitSnapshot || i.unit || products[0]?.unit || "Cái",
       docQty: Number(i.docQty) || 0,
       actualQty: Number(i.actualQty) || 0,
       unitPrice: Number(i.unitPrice) || 0,
       debitAccount: i.debitAccount || "152",
       creditAccount: i.creditAccount || "331",
       note: i.note || "",
-    })),
-  );
+    }));
+  });
 
   const totalAmount = items.reduce(
     (acc, it) => acc + Number(it.actualQty || 0) * Number(it.unitPrice || 0),
@@ -161,28 +200,32 @@ export default function EditGoodsReceiptRoute() {
     } else {
       toast.add({
         type: "error",
-        title: "Lỗi",
-        description: fetcher.data.message || "Kiểm tra lại dữ liệu.",
+        title: "Lỗi lưu dữ liệu",
+        description: fetcher.data.message || "Vui lòng kiểm tra lại.",
       });
     }
   }, [fetcher.data, navigate, receipt.id]);
 
   const handleUpdate = () => {
-    if (!organizationId || !warehouseId || !delivererName.trim()) {
+    const finalOrgId = organizationId || organizations[0]?.id || "";
+    const finalWhId = warehouseId || warehouses[0]?.id || "";
+    const finalDeliverer = delivererName.trim() || "Người giao hàng";
+
+    if (!finalOrgId || !finalWhId) {
       toast.add({
         type: "error",
         title: "Thiếu thông tin",
-        description: "Vui lòng nhập đủ Đơn vị, Kho và Người giao.",
+        description: "Vui lòng chọn Đơn vị và Kho tiếp nhận.",
       });
       return;
     }
 
     const payload: UpdateGoodsReceiptRequest = {
       receiptDate,
-      organizationId,
-      warehouseId,
+      organizationId: finalOrgId,
+      warehouseId: finalWhId,
       receiptType,
-      delivererName,
+      delivererName: finalDeliverer,
       docReference: docReference || null,
       docDate: docDate || null,
       docOrigin: docOrigin || null,
@@ -192,9 +235,9 @@ export default function EditGoodsReceiptRoute() {
       totalAmountWords: totalAmountWords || null,
       status: receipt.status as UpdateGoodsReceiptRequest["status"],
       items: items.map((it) => ({
-        productId: it.productId,
-        productNameSnapshot: it.productNameSnapshot,
-        unitSnapshot: it.unitSnapshot,
+        productId: it.productId || products[0]?.id || "",
+        productNameSnapshot: it.productNameSnapshot || "Vật tư",
+        unitSnapshot: it.unitSnapshot || "Cái",
         docQty: Number(it.docQty),
         actualQty: Number(it.actualQty),
         unitPrice: Number(it.unitPrice),
@@ -204,16 +247,28 @@ export default function EditGoodsReceiptRoute() {
       })),
     };
 
-    fetcher.submit(JSON.stringify(payload), {
+    fetcher.submit(payload as any, {
       method: "POST",
       encType: "application/json",
     });
   };
 
-  const isSubmitting = fetcher.state === "submitting";
+  const isSubmitting =
+    fetcher.state === "submitting" || fetcher.state === "loading";
 
   return (
     <div className="space-y-4 max-w-6xl mx-auto pb-12 px-2 sm:px-4">
+      {fetcher.data && !fetcher.data.success && (
+        <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-lg flex items-start gap-2 text-xs text-destructive">
+          <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+          <div>
+            <p className="font-semibold">Không thể lưu thay đổi</p>
+            <p>{fetcher.data.message}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Header toolbar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b">
         <div className="flex items-center gap-3">
           <Button
@@ -235,6 +290,7 @@ export default function EditGoodsReceiptRoute() {
         </div>
         <Button
           size="sm"
+          type="button"
           onClick={handleUpdate}
           disabled={isSubmitting}
           className="h-8 text-xs"
@@ -243,15 +299,17 @@ export default function EditGoodsReceiptRoute() {
             <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
           ) : (
             <Save className="h-3.5 w-3.5 mr-1.5" />
-          )}{" "}
-          Lưu Thay Đổi
+          )}
+          {isSubmitting ? "Đang lưu..." : "Lưu Thay Đổi"}
         </Button>
       </div>
 
+      {/* Form Input Chỉnh Sửa Thông Tin Chung */}
       <Card>
         <CardHeader className="py-2.5 px-4 border-b">
           <CardTitle className="text-xs font-semibold uppercase text-muted-foreground flex items-center gap-1.5">
-            <FileSpreadsheet className="h-4 w-4 text-primary" /> Thông tin chung
+            <FileSpreadsheet className="h-4 w-4 text-primary" /> Thông tin chứng
+            từ
           </CardTitle>
         </CardHeader>
         <CardContent className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -260,11 +318,11 @@ export default function EditGoodsReceiptRoute() {
             <Input
               value={receipt.receiptNumber}
               disabled
-              className="h-8 text-xs font-mono bg-muted"
+              className="h-8 text-xs font-mono bg-muted text-muted-foreground cursor-not-allowed"
             />
           </div>
           <div className="space-y-1">
-            <Label className="text-xs">Ngày lập</Label>
+            <Label className="text-xs">Ngày lập *</Label>
             <Input
               type="date"
               value={receiptDate}
@@ -313,6 +371,7 @@ export default function EditGoodsReceiptRoute() {
             <Input
               value={delivererName}
               onChange={(e) => setDelivererName(e.target.value)}
+              placeholder="Tên người giao"
               className="h-8 text-xs"
             />
           </div>
@@ -347,7 +406,7 @@ export default function EditGoodsReceiptRoute() {
             </Select>
           </div>
           <div className="space-y-1">
-            <Label className="text-xs">Bút toán (Nợ / Có)</Label>
+            <Label className="text-xs">Định khoản (Nợ / Có)</Label>
             <div className="grid grid-cols-2 gap-2">
               <Input
                 value={debitAccount}
@@ -366,6 +425,7 @@ export default function EditGoodsReceiptRoute() {
         </CardContent>
       </Card>
 
+      {/* Bảng Dòng Vật Tư Cho Phép Sửa/Thêm/Xóa/Đổi Vật Tư */}
       <ReceiptItemsTable
         items={items}
         setItems={setItems}

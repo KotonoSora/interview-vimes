@@ -160,15 +160,6 @@ export function Sidebar() {
           </nav>
         </div>
       </div>
-
-      {/* Footer Info */}
-      <div className="p-4 border-t bg-muted/30 text-[11px] text-muted-foreground flex justify-between items-center">
-        <span>Phiên bản 1.2.0</span>
-        <span className="inline-flex items-center gap-1">
-          <span className="h-2 w-2 rounded-full bg-emerald-500"></span>
-          API Online
-        </span>
-      </div>
     </aside>
   );
 }
