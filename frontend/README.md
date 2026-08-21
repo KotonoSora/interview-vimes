@@ -7,3 +7,4 @@
 ## Tech Stack
 
 - **Framework**: [React Router](https://reactrouter.com/) (`v8.3.0`)
+- **Design System**: [Shadcn UI](https://ui.shadcn.com) (`v4.18.0`)
