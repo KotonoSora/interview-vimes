@@ -3,7 +3,6 @@ export interface PageMetaConfig {
   subtitle: string;
   metaTitle: string;
   description: string;
-  badge?: string;
 }
 
 export const PAGE_ROUTES: Record<string, PageMetaConfig> = {
@@ -19,7 +18,6 @@ export const PAGE_ROUTES: Record<string, PageMetaConfig> = {
     metaTitle: "Sổ Phiếu Nhập Kho | VIMES Inventory",
     description:
       "Theo dõi, tra cứu và lọc danh sách chứng từ nhập kho Mẫu 01-VT.",
-    badge: "TT 200",
   },
   GOODS_RECEIPT_NEW: {
     title: "Lập Phiếu Nhập Kho",
