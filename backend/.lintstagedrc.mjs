@@ -1,5 +1,5 @@
 export default {
-  "(src|tests)/**/*.{ts}": (filenames) => {
+  "(src|tests)/**/*.ts": (filenames) => {
     const quotedFiles = filenames.map((file) => `"${file}"`).join(" ");
     return [
       `npm run prettier ${quotedFiles} --write`,
