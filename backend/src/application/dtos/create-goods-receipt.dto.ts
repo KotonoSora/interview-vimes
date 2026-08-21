@@ -1,62 +1,65 @@
 // src/application/dtos/create-goods-receipt.dto.ts
 import { z } from "zod";
 
-export const ReceiptItemInputSchema = z
+export const GoodsReceiptItemInputSchema = z
   .object({
-    productId: z.string().uuid("Mã sản phẩm phải là định dạng UUID"),
+    lineNo: z
+      .number()
+      .int()
+      .positive("Số thứ tự dòng phải là số nguyên dương")
+      .default(1),
+    productId: z.string().uuid("ID vật tư/hàng hóa không đúng định dạng UUID"),
     productNameSnapshot: z
       .string()
-      .min(1, "Tên quy cách vật tư không được để trống"),
+      .min(1, "Tên vật tư hàng hóa không được để trống"),
     unitSnapshot: z.string().min(1, "Đơn vị tính không được để trống"),
-    docQty: z.number().min(0, "Số lượng theo chứng từ không được âm"),
-    actualQty: z.number().min(0, "Số lượng thực nhập không được âm"),
-    unitPrice: z.number().min(0, "Đơn giá nhập không được âm"),
-    debitAccount: z.string().optional(),
-    creditAccount: z.string().optional(),
-    note: z.string().optional(),
+    docQty: z.number().nonnegative("Số lượng theo chứng từ không được âm"),
+    actualQty: z.number().nonnegative("Số lượng thực nhập không được âm"),
+    unitPrice: z.number().nonnegative("Đơn giá không được âm"),
+    amount: z.number().nonnegative("Thành tiền không được âm").optional(),
+    debitAccount: z.string().optional().nullable(),
+    creditAccount: z.string().optional().nullable(),
+    note: z.string().optional().nullable(),
   })
   .strict();
+
+export const ReceiptItemInputSchema = GoodsReceiptItemInputSchema;
 
 export const CreateGoodsReceiptSchema = z
   .object({
     receiptNumber: z.string().min(1, "Số phiếu nhập không được để trống"),
-    receiptDate: z
-      .string()
-      .regex(/^\d{4}-\d{2}-\d{2}$/, "Định dạng ngày lập phải là YYYY-MM-DD"),
-    actualReceivedDate: z
-      .string()
-      .regex(/^\d{4}-\d{2}-\d{2}$/, "Định dạng ngày nhận phải là YYYY-MM-DD")
+    organizationId: z.string().uuid("ID đơn vị không hợp lệ"),
+    warehouseId: z.string().uuid("ID kho bãi không hợp lệ"),
+    receiptDate: z.coerce.date({ message: "Ngày lập phiếu không hợp lệ" }),
+    actualReceivedDate: z.coerce
+      .date({ message: "Ngày nhập kho không hợp lệ" })
       .optional(),
-    organizationId: z.string().uuid("Organization ID phải là định dạng UUID"),
-    warehouseId: z.string().uuid("Warehouse ID phải là định dạng UUID"),
-    receiptType: z
-      .enum([
-        "PURCHASE",
-        "INTERNAL_PRODUCTION",
-        "OUTSOURCED_PROCESSING",
-        "CAPITAL_CONTRIBUTION",
-        "INVENTORY_SURPLUS",
-      ])
-      .default("PURCHASE"),
-    description: z.string().optional(),
+    receiptType: z.enum([
+      "PURCHASE",
+      "INTERNAL_PRODUCTION",
+      "OUTSOURCED_PROCESSING",
+      "CAPITAL_CONTRIBUTION",
+      "INVENTORY_SURPLUS",
+    ]),
     delivererName: z.string().min(1, "Họ tên người giao không được để trống"),
-    docReference: z.string().optional(),
-    docDate: z
-      .string()
-      .regex(/^\d{4}-\d{2}-\d{2}$/)
-      .optional(),
-    docOrigin: z.string().optional(),
-    debitAccount: z.string().optional(),
-    creditAccount: z.string().optional(),
-    totalAmountWords: z.string().optional(),
-    attachedDocCount: z.string().optional(),
-    creatorName: z.string().optional(),
-    storekeeperName: z.string().optional(),
-    chiefAccountantName: z.string().optional(),
-    status: z.enum(["DRAFT", "CONFIRMED"]).default("CONFIRMED"),
+    docReference: z.string().optional().nullable(),
+    docDate: z.coerce
+      .date({ message: "Ngày chứng từ không hợp lệ" })
+      .optional()
+      .nullable(),
+    docOrigin: z.string().optional().nullable(),
+    debitAccount: z.string().optional().nullable(),
+    creditAccount: z.string().optional().nullable(),
+    description: z.string().optional().nullable(),
+    totalAmountWords: z.string().optional().nullable(),
+    attachedDocCount: z.union([z.string(), z.number()]).optional().nullable(),
+    creatorName: z.string().optional().nullable(),
+    storekeeperName: z.string().optional().nullable(),
+    chiefAccountantName: z.string().optional().nullable(),
+    status: z.enum(["DRAFT", "CONFIRMED", "CANCELLED"]).default("CONFIRMED"),
     items: z
-      .array(ReceiptItemInputSchema)
-      .min(1, "Phiếu nhập phải có ít nhất 1 dòng hàng hóa"),
+      .array(GoodsReceiptItemInputSchema)
+      .min(1, "Phiếu nhập phải có ít nhất 01 mặt hàng"),
   })
   .strict();
 

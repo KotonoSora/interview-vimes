@@ -1,46 +1,31 @@
 // src/application/dtos/update-goods-receipt.dto.ts
 import { z } from "zod";
-import { ReceiptItemInputSchema } from "#/application/dtos/create-goods-receipt.dto";
+import { GoodsReceiptItemInputSchema } from "#/application/dtos/create-goods-receipt.dto";
 
-export const UpdateGoodsReceiptSchema = z
-  .object({
-    receiptDate: z
-      .string()
-      .regex(/^\d{4}-\d{2}-\d{2}$/)
-      .optional(),
-    actualReceivedDate: z
-      .string()
-      .regex(/^\d{4}-\d{2}-\d{2}$/)
-      .optional(),
-    organizationId: z.string().uuid(),
-    warehouseId: z.string().uuid(),
-    receiptType: z
-      .enum([
-        "PURCHASE",
-        "INTERNAL_PRODUCTION",
-        "OUTSOURCED_PROCESSING",
-        "CAPITAL_CONTRIBUTION",
-        "INVENTORY_SURPLUS",
-      ])
-      .optional(),
-    description: z.string().optional(),
-    delivererName: z.string().min(1),
-    docReference: z.string().optional(),
-    docDate: z
-      .string()
-      .regex(/^\d{4}-\d{2}-\d{2}$/)
-      .optional(),
-    docOrigin: z.string().optional(),
-    debitAccount: z.string().optional(),
-    creditAccount: z.string().optional(),
-    totalAmountWords: z.string().optional(),
-    attachedDocCount: z.string().optional(),
-    creatorName: z.string().optional(),
-    storekeeperName: z.string().optional(),
-    chiefAccountantName: z.string().optional(),
-    status: z.enum(["DRAFT", "CONFIRMED"]).optional(),
-    items: z.array(ReceiptItemInputSchema).min(1),
-  })
-  .strict();
+export const UpdateGoodsReceiptSchema = z.object({
+  receiptDate: z.coerce.date().optional(),
+  actualReceivedDate: z.coerce.date().optional(),
+  receiptType: z
+    .enum([
+      "PURCHASE",
+      "INTERNAL_PRODUCTION",
+      "OUTSOURCED_PROCESSING",
+      "CAPITAL_CONTRIBUTION",
+      "INVENTORY_SURPLUS",
+    ])
+    .optional(),
+  delivererName: z.string().min(1).optional(),
+  docReference: z.string().optional().nullable(),
+  docDate: z.coerce.date().optional().nullable(),
+  docOrigin: z.string().optional().nullable(),
+  debitAccount: z.string().optional().nullable(),
+  creditAccount: z.string().optional().nullable(),
+  description: z.string().optional().nullable(),
+  attachedDocCount: z.union([z.string(), z.number()]).optional().nullable(),
+  creatorName: z.string().optional().nullable(),
+  storekeeperName: z.string().optional().nullable(),
+  chiefAccountantName: z.string().optional().nullable(),
+  items: z.array(GoodsReceiptItemInputSchema).min(1).optional(),
+});
 
 export type UpdateGoodsReceiptDTO = z.infer<typeof UpdateGoodsReceiptSchema>;

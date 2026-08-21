@@ -3,100 +3,46 @@ import { Request, Response, NextFunction } from "express";
 import { CreateGoodsReceiptUseCase } from "#/application/use-cases/create-goods-receipt.use-case";
 import { UpdateGoodsReceiptUseCase } from "#/application/use-cases/update-goods-receipt.use-case";
 import { DeleteGoodsReceiptUseCase } from "#/application/use-cases/delete-goods-receipt.use-case";
+import { ListGoodsReceiptsUseCase } from "#/application/use-cases/list-goods-receipts.use-case";
+import { GetGoodsReceiptDetailUseCase } from "#/application/use-cases/get-goods-receipt-detail.use-case";
 import { CreateGoodsReceiptSchema } from "#/application/dtos/create-goods-receipt.dto";
 import { UpdateGoodsReceiptSchema } from "#/application/dtos/update-goods-receipt.dto";
-import { pool } from "#/infrastructure/database/postgres-pool";
 
 export class GoodsReceiptController {
   constructor(
     private readonly createUseCase: CreateGoodsReceiptUseCase,
     private readonly updateUseCase: UpdateGoodsReceiptUseCase,
     private readonly deleteUseCase: DeleteGoodsReceiptUseCase,
+    private readonly listUseCase: ListGoodsReceiptsUseCase,
+    private readonly detailUseCase: GetGoodsReceiptDetailUseCase,
   ) {}
 
-  /**
-   * GET /api/v1/goods-receipts
-   * Lấy danh sách phiếu nhập kho phân trang (Loại trừ chứng từ đã hủy CANCELLED)
-   */
   public getList = async (
     req: Request,
     res: Response,
     next: NextFunction,
   ): Promise<void> => {
     try {
-      const page = Math.max(1, parseInt(req.query.page as string) || 1);
-      const limit = Math.min(
-        100,
-        Math.max(1, parseInt(req.query.limit as string) || 10),
-      );
-      const offset = (page - 1) * limit;
-
-      const countSql = `
-        SELECT COUNT(*) AS total 
-        FROM goods_receipts 
-        WHERE status != 'CANCELLED';
-      `;
-
-      const dataSql = `
-        SELECT 
-          gr.id, 
-          gr.receipt_number, 
-          gr.receipt_date, 
-          gr.actual_received_date, 
-          gr.receipt_type,
-          gr.deliverer_name, 
-          gr.doc_reference,
-          gr.debit_account,
-          gr.credit_account,
-          gr.total_amount, 
-          gr.status, 
-          gr.created_at,
-          json_build_object(
-            'id', org.id, 
-            'name', org.name,
-            'department', org.department
-          ) AS organization,
-          json_build_object(
-            'id', wh.id, 
-            'name', wh.name,
-            'location', wh.location
-          ) AS warehouse
-        FROM goods_receipts gr
-        INNER JOIN organizations org ON gr.organization_id = org.id
-        INNER JOIN warehouses wh ON gr.warehouse_id = wh.id
-        WHERE gr.status != 'CANCELLED'
-        ORDER BY gr.created_at DESC
-        LIMIT $1 OFFSET $2;
-      `;
-
-      const [countResult, dataResult] = await Promise.all([
-        pool.query(countSql),
-        pool.query(dataSql, [limit, offset]),
-      ]);
-
-      const totalItems = parseInt(countResult.rows[0].total, 10);
-      const totalPages = Math.ceil(totalItems / limit);
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 10;
+      const result = await this.listUseCase.execute(page, limit);
 
       res.status(200).json({
         success: true,
         requestId: req.id,
         pagination: {
-          page,
-          limit,
-          totalItems,
-          totalPages,
+          page: result.page,
+          limit: result.limit,
+          totalItems: result.totalItems,
+          totalPages: result.totalPages,
         },
-        data: dataResult.rows,
+        data: result.data,
       });
     } catch (error) {
       next(error);
     }
   };
 
-  /**
-   * GET /api/v1/goods-receipts/:id
-   * Lấy toàn bộ chi tiết Phiếu Nhập Kho theo đúng cấu trúc Mẫu 01 - VT
-   */
   public getDetail = async (
     req: Request,
     res: Response,
@@ -104,90 +50,18 @@ export class GoodsReceiptController {
   ): Promise<void> => {
     try {
       const id = req.params.id as string;
-      const sql = `
-        SELECT 
-          gr.id, 
-          gr.receipt_number, 
-          gr.receipt_date, 
-          gr.actual_received_date, 
-          gr.receipt_type,
-          gr.description, 
-          gr.deliverer_name, 
-          gr.doc_reference, 
-          gr.doc_date, 
-          gr.doc_origin,
-          gr.debit_account, 
-          gr.credit_account, 
-          gr.total_amount, 
-          gr.total_amount_words,
-          gr.attached_doc_count, 
-          gr.creator_name, 
-          gr.storekeeper_name, 
-          gr.chief_accountant_name, 
-          gr.status,
-          gr.created_at,
-          gr.updated_at,
-          json_build_object(
-            'id', org.id, 
-            'name', org.name, 
-            'department', org.department
-          ) AS organization,
-          json_build_object(
-            'id', wh.id, 
-            'name', wh.name, 
-            'location', wh.location
-          ) AS warehouse,
-          COALESCE(
-            json_agg(
-              json_build_object(
-                'id', gri.id, 
-                'lineNo', gri.line_no, 
-                'productId', gri.product_id,
-                'productCode', p.code, 
-                'productName', gri.product_name_snapshot,
-                'unit', gri.unit_snapshot, 
-                'docQty', gri.doc_qty, 
-                'actualQty', gri.actual_qty,
-                'unitPrice', gri.unit_price, 
-                'amount', gri.amount,
-                'debitAccount', gri.debit_account, 
-                'creditAccount', gri.credit_account, 
-                'note', gri.note
-              ) ORDER BY gri.line_no ASC
-            ) FILTER (WHERE gri.id IS NOT NULL), '[]'::json
-          ) AS items
-        FROM goods_receipts gr
-        INNER JOIN organizations org ON gr.organization_id = org.id
-        INNER JOIN warehouses wh ON gr.warehouse_id = wh.id
-        LEFT JOIN goods_receipt_items gri ON gr.id = gri.receipt_id
-        LEFT JOIN products p ON gri.product_id = p.id
-        WHERE gr.id = $1
-        GROUP BY gr.id, org.id, wh.id;
-      `;
-
-      const result = await pool.query(sql, [id]);
-      if (result.rows.length === 0) {
-        res.status(404).json({
-          success: false,
-          message: "Không tìm thấy phiếu nhập kho với ID đã cung cấp.",
-          requestId: req.id,
-        });
-        return;
-      }
+      const data = await this.detailUseCase.execute(id);
 
       res.status(200).json({
         success: true,
         requestId: req.id,
-        data: result.rows[0],
+        data,
       });
     } catch (error) {
       next(error);
     }
   };
 
-  /**
-   * POST /api/v1/goods-receipts
-   */
   public create = async (
     req: Request,
     res: Response,
@@ -208,9 +82,6 @@ export class GoodsReceiptController {
     }
   };
 
-  /**
-   * PUT /api/v1/goods-receipts/:id
-   */
   public update = async (
     req: Request,
     res: Response,
@@ -223,7 +94,7 @@ export class GoodsReceiptController {
 
       res.status(200).json({
         success: true,
-        message: "Cập nhật phiếu nhập kho và điều chỉnh tồn kho thành công",
+        message: "Cập nhật phiếu nhập kho thành công",
         requestId: req.id,
         data: result,
       });
@@ -232,9 +103,6 @@ export class GoodsReceiptController {
     }
   };
 
-  /**
-   * DELETE /api/v1/goods-receipts/:id
-   */
   public delete = async (
     req: Request,
     res: Response,
