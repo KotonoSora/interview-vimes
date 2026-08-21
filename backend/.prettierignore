@@ -1,0 +1,19 @@
+# Ignore everything
+**
+
+# Allow specific files within root
+!package.json
+!vitest.config.ts
+!README.md
+!tsconfig.json
+!react-router.config.ts
+
+# Allow folder .vscode
+!.vscode/
+!.vscode/*.code-snippets
+
+# Allow folder source
+!src/
+!src/**
+!tests/
+!tests/**

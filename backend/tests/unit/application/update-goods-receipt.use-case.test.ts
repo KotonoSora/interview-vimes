@@ -1,13 +1,14 @@
 // tests/unit/application/update-goods-receipt.use-case.test.ts
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import { UpdateGoodsReceiptDTO } from "#/application/dtos/update-goods-receipt.dto";
 import { UpdateGoodsReceiptUseCase } from "#/application/use-cases/update-goods-receipt.use-case";
-import { IGoodsReceiptRepository } from "#/domain/repositories/goods-receipt.repository.interface";
-import { AuditTrailService } from "#/infrastructure/analytics/audit-trail.service";
 import { GoodsReceipt } from "#/domain/entities/goods-receipt.entity";
 import { ReceiptItem } from "#/domain/entities/receipt-item.entity";
-import { Quantity } from "#/domain/value-objects/quantity.vo";
+import { IGoodsReceiptRepository } from "#/domain/repositories/goods-receipt.repository.interface";
 import { Money } from "#/domain/value-objects/money.vo";
-import { UpdateGoodsReceiptDTO } from "#/application/dtos/update-goods-receipt.dto";
+import { Quantity } from "#/domain/value-objects/quantity.vo";
+import { AuditTrailService } from "#/infrastructure/analytics/audit-trail.service";
 
 describe("[Application - Use Case] UpdateGoodsReceiptUseCase", () => {
   let mockReceiptRepo: IGoodsReceiptRepository;

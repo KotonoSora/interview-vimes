@@ -1,9 +1,9 @@
 // src/infrastructure/repositories/postgres-master-data.repository.ts
-import { pool } from "#/infrastructure/database/postgres-pool";
-import { IMasterDataRepository } from "#/domain/repositories/master-data.repository.interface";
 import { Organization } from "#/domain/entities/organization.entity";
-import { Warehouse } from "#/domain/entities/warehouse.entity";
 import { Product } from "#/domain/entities/product.entity";
+import { Warehouse } from "#/domain/entities/warehouse.entity";
+import { IMasterDataRepository } from "#/domain/repositories/master-data.repository.interface";
+import { pool } from "#/infrastructure/database/postgres-pool";
 
 export class PostgresMasterDataRepository implements IMasterDataRepository {
   async getActiveOrganizations(): Promise<Organization[]> {

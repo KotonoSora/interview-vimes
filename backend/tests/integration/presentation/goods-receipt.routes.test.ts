@@ -1,6 +1,7 @@
 // tests/integration/presentation/goods-receipt.routes.test.ts
-import { describe, it, expect, vi, beforeEach } from "vitest";
 import request from "supertest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
 import app from "#/app";
 import { pool } from "#/infrastructure/database/postgres-pool";
 

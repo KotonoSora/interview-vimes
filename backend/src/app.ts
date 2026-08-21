@@ -1,17 +1,18 @@
 // src/app.ts
-import express from "express";
+import path from "node:path";
+
 import dotenv from "dotenv";
+import express from "express";
 import morgan from "morgan";
-import healthRouter from "#/presentation/routes/health.routes";
-import goodsReceiptRouter from "#/presentation/routes/goods-receipt.routes";
-import masterDataRouter from "#/presentation/routes/master-data.routes";
-import { requestIdMiddleware } from "#/presentation/middlewares/request-id.middleware";
-import { configureSecurityMiddlewares } from "#/presentation/middlewares/security.middleware";
-import { errorMiddleware } from "#/presentation/middlewares/error.middleware";
-import { metricsMiddleware } from "#/infrastructure/monitoring/metrics";
 import client from "prom-client";
 
-import path from "node:path";
+import { metricsMiddleware } from "#/infrastructure/monitoring/metrics";
+import { errorMiddleware } from "#/presentation/middlewares/error.middleware";
+import { requestIdMiddleware } from "#/presentation/middlewares/request-id.middleware";
+import { configureSecurityMiddlewares } from "#/presentation/middlewares/security.middleware";
+import goodsReceiptRouter from "#/presentation/routes/goods-receipt.routes";
+import healthRouter from "#/presentation/routes/health.routes";
+import masterDataRouter from "#/presentation/routes/master-data.routes";
 
 dotenv.config({ path: path.resolve(process.cwd(), ".env") });
 

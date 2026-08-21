@@ -1,5 +1,6 @@
 // src/presentation/controllers/health.controller.ts
 import { Request, Response } from "express";
+
 import { pool } from "#/infrastructure/database/postgres-pool";
 
 export class HealthController {

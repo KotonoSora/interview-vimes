@@ -1,6 +1,6 @@
 // src/infrastructure/monitoring/metrics.ts
+import { NextFunction, Request, Response } from "express";
 import client from "prom-client";
-import { Request, Response, NextFunction } from "express";
 
 client.collectDefaultMetrics({ prefix: "vimes_inventory_" });
 

@@ -12,6 +12,11 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsx src/app.ts",
+    "lint": "tsc --noEmit",
+    "lint:commitlint": "commitlint --edit",
+    "lint-staged": "lint-staged",
+    "prepare": "husky",
+    "prettier": "prettier",
     "start": "node dist/app.js",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
@@ -34,6 +39,9 @@
     "zod": "4.4.3"
   },
   "devDependencies": {
+    "@commitlint/cli": "21.2.2",
+    "@commitlint/config-conventional": "21.2.2",
+    "@ianvs/prettier-plugin-sort-imports": "4.7.1",
     "@types/cors": "2.8.19",
     "@types/express": "5.0.6",
     "@types/hpp": "0.2.7",
@@ -42,6 +50,9 @@
     "@types/pg": "8.23.1",
     "@types/supertest": "7.2.1",
     "@vitest/coverage-v8": "4.1.11",
+    "husky": "9.1.7",
+    "lint-staged": "17.3.0",
+    "prettier": "3.9.6",
     "supertest": "7.2.2",
     "tsup": "8.5.1",
     "tsx": "4.23.12",

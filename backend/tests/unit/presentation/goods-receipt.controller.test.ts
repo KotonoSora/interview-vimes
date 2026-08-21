@@ -1,5 +1,6 @@
 // tests/unit/presentation/goods-receipt.controller.test.ts
-import { describe, it, expect, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
 import { GoodsReceiptController } from "#/presentation/controllers/goods-receipt.controller";
 
 describe("[Presentation] GoodsReceiptController Error Handling & Branch Coverage", () => {

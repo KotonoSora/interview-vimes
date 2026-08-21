@@ -1,5 +1,5 @@
 // src/presentation/middlewares/error.middleware.ts
-import { Request, Response, NextFunction } from "express";
+import { NextFunction, Request, Response } from "express";
 import { ZodError } from "zod";
 
 export function errorMiddleware(

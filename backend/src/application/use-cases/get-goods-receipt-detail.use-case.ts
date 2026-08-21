@@ -1,6 +1,6 @@
 // src/application/use-cases/get-goods-receipt-detail.use-case.ts
-import { IGoodsReceiptRepository } from "#/domain/repositories/goods-receipt.repository.interface";
 import { EntityNotFoundError } from "#/domain/exceptions/domain.exception";
+import { IGoodsReceiptRepository } from "#/domain/repositories/goods-receipt.repository.interface";
 
 export class GetGoodsReceiptDetailUseCase {
   constructor(private readonly goodsReceiptRepo: IGoodsReceiptRepository) {}

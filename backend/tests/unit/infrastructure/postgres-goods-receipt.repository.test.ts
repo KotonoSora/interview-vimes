@@ -1,11 +1,12 @@
 // tests/unit/infrastructure/postgres-goods-receipt.repository.test.ts
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { PostgresGoodsReceiptRepository } from "#/infrastructure/repositories/postgres-goods-receipt.repository";
-import { pool } from "#/infrastructure/database/postgres-pool";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
 import { GoodsReceipt } from "#/domain/entities/goods-receipt.entity";
 import { ReceiptItem } from "#/domain/entities/receipt-item.entity";
 import { Money } from "#/domain/value-objects/money.vo";
 import { Quantity } from "#/domain/value-objects/quantity.vo";
+import { pool } from "#/infrastructure/database/postgres-pool";
+import { PostgresGoodsReceiptRepository } from "#/infrastructure/repositories/postgres-goods-receipt.repository";
 
 vi.mock("#/infrastructure/database/postgres-pool", () => ({
   pool: {

@@ -1,9 +1,9 @@
 // src/presentation/middlewares/security.middleware.ts
-import helmet from "helmet";
-import rateLimit from "express-rate-limit";
-import hpp from "hpp";
 import cors from "cors";
 import { Express } from "express";
+import rateLimit from "express-rate-limit";
+import helmet from "helmet";
+import hpp from "hpp";
 
 export function configureSecurityMiddlewares(app: Express): void {
   app.use(

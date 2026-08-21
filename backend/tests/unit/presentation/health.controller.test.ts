@@ -1,8 +1,9 @@
 // tests/unit/presentation/health.controller.test.ts
-import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Request, Response } from "express";
-import { HealthController } from "#/presentation/controllers/health.controller";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
 import { pool } from "#/infrastructure/database/postgres-pool";
+import { HealthController } from "#/presentation/controllers/health.controller";
 
 vi.mock("#/infrastructure/database/postgres-pool", () => ({
   pool: {
