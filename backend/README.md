@@ -43,13 +43,13 @@ Once the containers are operational, you can verify service availability and hea
 
 ```bash
 # Liveness Probe: Verify backend process health
-curl -i http://localhost/healthz
+curl -i http://localhost:8080/healthz
 
 # Readiness Probe: Check database connectivity and connection pool status
-curl -i http://localhost/ready
+curl -i http://localhost:8080/ready
 
 # Real-time Telemetry: Scrape Prometheus metrics
-curl -i http://localhost/metrics
+curl -i http://localhost:8080/metrics
 ```
 
 ---

@@ -38,9 +38,9 @@ docker compose -f docker/docker-compose.yml down
 
 ```bash
 # Nginx Liveness Probe
-curl -i http://localhost/nginx-health
+curl -i http://localhost:8080/nginx-health
 
 # Backend Application Health
-curl -i http://localhost/healthz
+curl -i http://localhost:8080/healthz
 
 ```

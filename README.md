@@ -30,5 +30,6 @@
 3. Viết chương trình cho phép nhập liệu và lưu dữ liệu vào bảng.
     - [Docker](./docker/README.md)
     - [Backend](./backend/README.md)
+    - [Frontend](./frontend/README.md)
 4. Viết unittest.
     - [Unit Test](./docs//tdd-and-unit-test.md)
