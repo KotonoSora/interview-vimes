@@ -1,6 +1,7 @@
 // tests/unit/presentation/request-id.middleware.test.ts
-import { describe, it, expect, vi } from "vitest";
-import { Request, Response, NextFunction } from "express";
+import { NextFunction, Request, Response } from "express";
+import { describe, expect, it, vi } from "vitest";
+
 import { requestIdMiddleware } from "#/presentation/middlewares/request-id.middleware";
 
 describe("[Presentation - Middleware] RequestIdMiddleware", () => {

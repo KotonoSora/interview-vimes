@@ -1,8 +1,9 @@
 // tests/unit/application/get-organizations.use-case.test.ts
-import { describe, it, expect, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
 import { GetOrganizationsUseCase } from "#/application/use-cases/get-organizations.use-case";
-import { IMasterDataRepository } from "#/domain/repositories/master-data.repository.interface";
 import { Organization } from "#/domain/entities/organization.entity";
+import { IMasterDataRepository } from "#/domain/repositories/master-data.repository.interface";
 
 describe("GetOrganizationsUseCase", () => {
   it("TC-UC-ORG-01: Phải lấy danh sách đơn vị/tổ chức hoạt động thành công", async () => {

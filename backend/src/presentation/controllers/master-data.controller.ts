@@ -1,8 +1,9 @@
 // src/presentation/controllers/master-data.controller.ts
-import { Request, Response, NextFunction } from "express";
+import { NextFunction, Request, Response } from "express";
+
 import { GetOrganizationsUseCase } from "#/application/use-cases/get-organizations.use-case";
-import { GetWarehousesUseCase } from "#/application/use-cases/get-warehouses.use-case";
 import { GetProductsUseCase } from "#/application/use-cases/get-products.use-case";
+import { GetWarehousesUseCase } from "#/application/use-cases/get-warehouses.use-case";
 
 export class MasterDataController {
   constructor(

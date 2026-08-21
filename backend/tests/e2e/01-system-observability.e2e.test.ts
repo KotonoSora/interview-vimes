@@ -1,6 +1,7 @@
 // tests/e2e/01-system-observability.e2e.test.ts
-import { describe, it, expect } from "vitest";
-import { ROOT_URL, parseJson } from "./e2e-helper";
+import { describe, expect, it } from "vitest";
+
+import { parseJson, ROOT_URL } from "./e2e-helper";
 
 describe("[E2E] 1. System & Observability Endpoints", () => {
   it("GET /healthz: Liveness Probe should return UP status with uptime", async () => {

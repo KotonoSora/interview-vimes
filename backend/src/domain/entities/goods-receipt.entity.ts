@@ -1,7 +1,7 @@
 // src/domain/entities/goods-receipt.entity.ts
-import { Money } from "#/domain/value-objects/money.vo";
 import { ReceiptItem } from "#/domain/entities/receipt-item.entity";
 import { DomainValidationError } from "#/domain/exceptions/domain.exception";
+import { Money } from "#/domain/value-objects/money.vo";
 
 export type ReceiptType =
   | "PURCHASE"

@@ -1,5 +1,6 @@
 // tests/unit/domain/master-data-entities.test.ts
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
+
 import { Organization } from "#/domain/entities/organization.entity";
 import { Product } from "#/domain/entities/product.entity";
 import { Warehouse } from "#/domain/entities/warehouse.entity";

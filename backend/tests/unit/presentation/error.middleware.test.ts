@@ -1,12 +1,13 @@
 // tests/unit/presentation/error.middleware.test.ts
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { Request, Response, NextFunction } from "express";
-import { ZodError, z } from "zod";
-import { errorMiddleware } from "#/presentation/middlewares/error.middleware";
+import { NextFunction, Request, Response } from "express";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { z, ZodError } from "zod";
+
 import {
   DomainValidationError,
   EntityNotFoundError,
 } from "#/domain/exceptions/domain.exception";
+import { errorMiddleware } from "#/presentation/middlewares/error.middleware";
 
 describe("[Presentation - Middleware] error.middleware", () => {
   let req: Request;

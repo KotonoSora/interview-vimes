@@ -1,11 +1,11 @@
 // src/application/use-cases/update-goods-receipt.use-case.ts
-import { IGoodsReceiptRepository } from "#/domain/repositories/goods-receipt.repository.interface";
+import { UpdateGoodsReceiptDTO } from "#/application/dtos/update-goods-receipt.dto";
 import { GoodsReceipt } from "#/domain/entities/goods-receipt.entity";
 import { ReceiptItem } from "#/domain/entities/receipt-item.entity";
-import { UpdateGoodsReceiptDTO } from "#/application/dtos/update-goods-receipt.dto";
+import { DomainValidationError } from "#/domain/exceptions/domain.exception";
+import { IGoodsReceiptRepository } from "#/domain/repositories/goods-receipt.repository.interface";
 import { Money } from "#/domain/value-objects/money.vo";
 import { Quantity } from "#/domain/value-objects/quantity.vo";
-import { DomainValidationError } from "#/domain/exceptions/domain.exception";
 
 export class UpdateGoodsReceiptUseCase {
   constructor(

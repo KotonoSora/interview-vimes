@@ -1,12 +1,13 @@
 // src/presentation/routes/goods-receipt.routes.ts
 import { Router } from "express";
-import { GoodsReceiptController } from "#/presentation/controllers/goods-receipt.controller";
+
 import { CreateGoodsReceiptUseCase } from "#/application/use-cases/create-goods-receipt.use-case";
-import { UpdateGoodsReceiptUseCase } from "#/application/use-cases/update-goods-receipt.use-case";
 import { DeleteGoodsReceiptUseCase } from "#/application/use-cases/delete-goods-receipt.use-case";
-import { ListGoodsReceiptsUseCase } from "#/application/use-cases/list-goods-receipts.use-case";
 import { GetGoodsReceiptDetailUseCase } from "#/application/use-cases/get-goods-receipt-detail.use-case";
+import { ListGoodsReceiptsUseCase } from "#/application/use-cases/list-goods-receipts.use-case";
+import { UpdateGoodsReceiptUseCase } from "#/application/use-cases/update-goods-receipt.use-case";
 import { PostgresGoodsReceiptRepository } from "#/infrastructure/repositories/postgres-goods-receipt.repository";
+import { GoodsReceiptController } from "#/presentation/controllers/goods-receipt.controller";
 
 const goodsReceiptRouter = Router();
 

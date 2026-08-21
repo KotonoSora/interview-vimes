@@ -1,6 +1,6 @@
 // src/infrastructure/database/postgres-pool.ts
-import { Pool } from "pg";
 import dotenv from "dotenv";
+import { Pool } from "pg";
 
 dotenv.config();
 

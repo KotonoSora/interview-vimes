@@ -1,5 +1,6 @@
 // tests/e2e/03-goods-receipts.e2e.test.ts
-import { describe, it, expect, beforeAll } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
+
 import { BASE_URL, CLIENT_TRACE_ID, parseJson } from "./e2e-helper";
 
 describe("[E2E] 3. Goods Receipts Lifecycle & Business Rules", () => {

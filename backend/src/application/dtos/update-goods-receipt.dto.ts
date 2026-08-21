@@ -1,5 +1,6 @@
 // src/application/dtos/update-goods-receipt.dto.ts
 import { z } from "zod";
+
 import { GoodsReceiptItemInputSchema } from "#/application/dtos/create-goods-receipt.dto";
 
 export const UpdateGoodsReceiptSchema = z.object({

@@ -1,5 +1,6 @@
 // tests/unit/domain/quantity.vo.test.ts
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
+
 import { Quantity } from "#/domain/value-objects/quantity.vo";
 
 describe("[Domain - Value Object] Quantity", () => {

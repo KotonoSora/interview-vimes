@@ -1,8 +1,9 @@
 // tests/unit/application/get-products.use-case.test.ts
-import { describe, it, expect, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
 import { GetProductsUseCase } from "#/application/use-cases/get-products.use-case";
-import { IMasterDataRepository } from "#/domain/repositories/master-data.repository.interface";
 import { Product } from "#/domain/entities/product.entity";
+import { IMasterDataRepository } from "#/domain/repositories/master-data.repository.interface";
 
 describe("[Unit Test] GetProductsUseCase", () => {
   it("TC-UC-PROD-01: Phải tìm kiếm danh mục sản phẩm theo từ khóa", async () => {

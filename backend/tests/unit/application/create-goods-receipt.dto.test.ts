@@ -1,6 +1,7 @@
 // tests/unit/application/create-goods-receipt.dto.test.ts
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import { ZodError } from "zod";
+
 import { CreateGoodsReceiptSchema } from "#/application/dtos/create-goods-receipt.dto";
 
 describe("[Application - DTO Validation] CreateGoodsReceiptSchema", () => {

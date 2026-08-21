@@ -1,8 +1,9 @@
 // tests/unit/application/get-warehouses.use-case.test.ts
-import { describe, it, expect, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
 import { GetWarehousesUseCase } from "#/application/use-cases/get-warehouses.use-case";
-import { IMasterDataRepository } from "#/domain/repositories/master-data.repository.interface";
 import { Warehouse } from "#/domain/entities/warehouse.entity";
+import { IMasterDataRepository } from "#/domain/repositories/master-data.repository.interface";
 
 describe("[Unit Test] GetWarehousesUseCase", () => {
   it("TC-UC-WH-01: Phải trả về danh sách các kho đang active", async () => {

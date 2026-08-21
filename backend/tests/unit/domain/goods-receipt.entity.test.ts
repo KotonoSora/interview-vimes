@@ -1,5 +1,6 @@
 // tests/unit/domain/goods-receipt.entity.test.ts
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
+
 import { GoodsReceipt } from "#/domain/entities/goods-receipt.entity";
 import { ReceiptItem } from "#/domain/entities/receipt-item.entity";
 import { Money } from "#/domain/value-objects/money.vo";

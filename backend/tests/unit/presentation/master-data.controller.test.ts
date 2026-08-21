@@ -1,6 +1,7 @@
 // tests/unit/presentation/master-data.controller.test.ts
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { Request, Response, NextFunction } from "express";
+import { NextFunction, Request, Response } from "express";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
 import { MasterDataController } from "#/presentation/controllers/master-data.controller";
 
 describe("[Presentation - Controller] MasterDataController", () => {
