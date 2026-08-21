@@ -1,0 +1,33 @@
+# docker/Dockerfile.frontend
+# Stage 1: Build stage
+FROM node:24.19.0-alpine AS builder
+WORKDIR /app
+
+# Cache dependency layers
+COPY frontend/package*.json frontend/tsconfig*.json frontend/react-router.config.* frontend/vite.config.* ./
+RUN npm ci
+
+# Copy only source directories needed for building
+COPY frontend/app ./app
+COPY frontend/public ./public
+RUN npm run build
+
+# Prune devDependencies in place and clear npm cache
+RUN npm prune --omit=dev && npm cache clean --force
+
+# Stage 2: Production runtime stage
+FROM node:24.19.0-alpine AS runner
+WORKDIR /app
+
+ENV NODE_ENV=production
+ENV PORT=8081
+
+# Copy production artifacts with non-root ownership
+COPY --chown=node:node --from=builder /app/package*.json ./
+COPY --chown=node:node --from=builder /app/node_modules ./node_modules
+COPY --chown=node:node --from=builder /app/build ./build
+
+USER node
+
+EXPOSE 8081
+CMD ["./node_modules/.bin/react-router-serve", "./build/server/index.js"]

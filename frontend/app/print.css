@@ -1,0 +1,62 @@
+/* app/print.css - File CSS chuyên biệt cho in ấn chứng từ Mẫu 01 - VT */
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 12mm 10mm 15mm 10mm;
+  }
+
+  /* 1. Ẩn hoàn toàn các thành phần giao diện web */
+  aside,
+  header,
+  nav,
+  button,
+  .no-print,
+  [role="dialog"],
+  footer {
+    display: none !important;
+  }
+
+  /* 2. Reset Layout toàn màn hình về trang giấy in */
+  html,
+  body,
+  main {
+    background: #ffffff !important;
+    color: #000000 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* 3. Đảm bảo form in A4 trải rộng chuẩn 100% */
+  .printable-document {
+    box-shadow: none !important;
+    border: none !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* 4. Quy tắc bảng biểu không ngắt dòng xấu */
+  table {
+    page-break-inside: auto;
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+
+  tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  tfoot {
+    display: table-footer-group;
+  }
+}

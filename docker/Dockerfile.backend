@@ -1,0 +1,31 @@
+# docker/Dockerfile.backend
+# Stage 1: Build stage
+FROM node:24.19.0-alpine AS builder
+WORKDIR /app
+
+# Cache dependency layers separately
+COPY backend/package*.json backend/tsconfig.json backend/tsup.config.* ./
+RUN npm ci
+
+# Copy only source code needed for bundling
+COPY backend/src ./src
+RUN npm run build
+
+# Stage 2: Production runtime stage
+FROM node:24.19.0-alpine AS runner
+WORKDIR /app
+
+ENV NODE_ENV=production
+ENV PORT=8082
+
+# Install production dependencies directly with the non-root user permissions
+COPY --chown=node:node backend/package*.json ./
+RUN npm ci --omit=dev && npm cache clean --force
+
+# Copy compiled artifacts from builder
+COPY --chown=node:node --from=builder /app/dist ./dist
+
+USER node
+
+EXPOSE 8082
+CMD ["node", "dist/app.js"]

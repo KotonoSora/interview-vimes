@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "emitDecoratorMetadata": false,
+    "esModuleInterop": true,
+    "experimentalDecorators": false,
+    "forceConsistentCasingInFileNames": true,
+    "lib": ["ES2022"],
+    "module": "ES2022",
+    "moduleResolution": "Bundler",
+    "outDir": "./dist",
+    "paths": {
+      "#/*": ["./src/*"],
+      "#tests/*": ["./tests/*"]
+    },
+    "resolveJsonModule": true,
+    "rootDirs": ["./src", "./tests"],
+    "skipLibCheck": true,
+    "strict": true,
+    "target": "ES2022"
+  },
+  "include": ["src/**/*", "tests/**/*"]
+}

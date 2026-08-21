@@ -36,10 +36,7 @@ Lưu ý:
 
 [10] Ghi tổng số tiền trên Phiếu nhập kho bằng chữ.
 
-
-
 ## **2. Sổ kế toán**
-
 
 Căn cứ Điều 24 [Luật Kế toán 2015](https://thuvienphapluat.vn/van-ban/Ke-toan-Kiem-toan/Luat-ke-toan-2015-298369.aspx?anchor=dieu_24), sổ kế toán được quy định như sau:
 
@@ -49,21 +46,21 @@ Căn cứ Điều 24 [Luật Kế toán 2015](https://thuvienphapluat.vn/van-ba
 
 - Sổ kế toán phải có các nội dung chủ yếu sau đây:
 
-+ Ngày, tháng, năm ghi sổ.
+- Ngày, tháng, năm ghi sổ.
 
-+ Số hiệu và ngày, tháng, năm của chứng từ kế toán dùng làm căn cứ ghi sổ.
+- Số hiệu và ngày, tháng, năm của chứng từ kế toán dùng làm căn cứ ghi sổ.
 
-+ Tóm tắt nội dung của nghiệp vụ kinh tế, tài chính phát sinh.
+- Tóm tắt nội dung của nghiệp vụ kinh tế, tài chính phát sinh.
 
-+ Số tiền của nghiệp vụ kinh tế, tài chính phát sinh ghi vào các tài khoản kế toán.
+- Số tiền của nghiệp vụ kinh tế, tài chính phát sinh ghi vào các tài khoản kế toán.
 
-+ Số dư đầu kỳ, số phát sinh trong kỳ, số dư cuối kỳ.
+- Số dư đầu kỳ, số phát sinh trong kỳ, số dư cuối kỳ.
 
-+ Sổ kế toán gồm sổ kế toán tổng hợp và sổ kế toán chi tiết.
+- Sổ kế toán gồm sổ kế toán tổng hợp và sổ kế toán chi tiết.
 
 ## **3. Hệ thống sổ kế toán**
 
-Hệ thống sổ kế toán được quy định tại Điều 25 [Luật Kế toán 2015](https://thuvienphapluat.vn/van-ban/Ke-toan-Kiem-toan/Luat-ke-toan-2015-298369.aspx?anchor=dieu_25) như sau: 
+Hệ thống sổ kế toán được quy định tại Điều 25 [Luật Kế toán 2015](https://thuvienphapluat.vn/van-ban/Ke-toan-Kiem-toan/Luat-ke-toan-2015-298369.aspx?anchor=dieu_25) như sau:
 
 - Đơn vị kế toán phải căn cứ vào hệ thống sổ kế toán do Bộ Tài chính quy định để chọn một hệ thống sổ kế toán áp dụng ở đơn vị.
 

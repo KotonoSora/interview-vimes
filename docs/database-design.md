@@ -8,19 +8,13 @@ tags:
 
 Hệ thống cơ sở dữ liệu được thiết kế nhằm đáp ứng chuẩn mực kế toán Việt Nam (**Mẫu 01 - VT ban hành theo Thông tư 200/2014/TT-BTC** và **Điều 24, Điều 25 Luật Kế toán 2015**), đảm bảo tính toàn vẹn dữ liệu kế toán, lưu vết kiểm toán (Audit Trail), hỗ trợ mở rộng quy mô đa chi nhánh và tích hợp các tiêu chuẩn bảo mật dữ liệu cấp doanh nghiệp (**Enterprise Data Security & Anti-Exfiltration**).
 
-  
-
 ## PHẦN 1: HỆ THỐNG CƠ SỞ DỮ LIỆU QUAN HỆ (SQL - POSTGRESQL)
 
 Thiết kế SQL chuẩn hóa 3NF (Third Normal Form) kết hợp các ràng buộc khóa ngoại (Foreign Keys), kiểm tra hợp lệ (Check Constraints), cơ chế khóa dòng giao dịch (Row-Level Locking) và phân quyền theo nguyên tắc đặc quyền tối thiểu (**Principle of Least Privilege**).
 
-  
-
 ### 1. Bảng Từ Điển Dữ Liệu Tối Giản (Data Dictionary)
 
 **Bảng: `organizations` (Đơn vị chủ quản & Bộ phận nhập kho)**
-
-  
 
 |**Cột**|**Kiểu Dữ Liệu**|**Ràng Buộc**|**Null**|**Mô Tả**|
 |---|---|---|---|---|
@@ -31,8 +25,6 @@ Thiết kế SQL chuẩn hóa 3NF (Third Normal Form) kết hợp các ràng bu�
 |`created_at`|`TIMESTAMPTZ`|`DEFAULT now()`|No|Thời điểm khởi tạo|
 
 **Bảng: `warehouses` (Kho bãi lưu trữ)**
-
-  
 
 |**Cột**|**Kiểu Dữ Liệu**|**Ràng Buộc**|**Null**|**Mô Tả**|
 |---|---|---|---|---|
@@ -45,8 +37,6 @@ Thiết kế SQL chuẩn hóa 3NF (Third Normal Form) kết hợp các ràng bu�
 
 **Bảng: `products` (Danh mục vật tư, công cụ, sản phẩm, hàng hóa)**
 
-  
-
 |**Cột**|**Kiểu Dữ Liệu**|**Ràng Buộc**|**Null**|**Mô Tả**|
 |---|---|---|---|---|
 |`id`|`UUID`|`PK, DEFAULT gen_random_uuid()`|No|Định danh sản phẩm|
@@ -58,8 +48,6 @@ Thiết kế SQL chuẩn hóa 3NF (Third Normal Form) kết hợp các ràng bu�
 |`created_at`|`TIMESTAMPTZ`|`DEFAULT now()`|No|Thời điểm tạo bản ghi|
 
 **Bảng: `goods_receipts` (Phiếu Nhập Kho - Master Header)**
-
-  
 
 |**Cột**|**Kiểu Dữ Liệu**|**Ràng Buộc**|**Null**|**Mô Tả Pháp Lý & Nghiệp Vụ**|
 |---|---|---|---|---|
@@ -89,8 +77,6 @@ Thiết kế SQL chuẩn hóa 3NF (Third Normal Form) kết hợp các ràng bu�
 
 **Bảng: `goods_receipt_items` (Chi Tiết Vật Tư - Detail Lines)**
 
-  
-
 |**Cột**|**Kiểu Dữ Liệu**|**Ràng Buộc**|**Null**|**Mô Tả Pháp Lý & Nghiệp Vụ**|
 |---|---|---|---|---|
 |`id`|`UUID`|`PK, DEFAULT gen_random_uuid()`|No|Định danh dòng chi tiết|
@@ -109,8 +95,6 @@ Thiết kế SQL chuẩn hóa 3NF (Third Normal Form) kết hợp các ràng bu�
 
 **Bảng: `inventory_balances` (Sổ Dư Tồn Kho Tức Thời)**
 
-  
-
 |**Cột**|**Kiểu Dữ Liệu**|**Ràng Buộc**|**Null**|**Mô Tả**|
 |---|---|---|---|---|
 |`warehouse_id`|`UUID`|`PK, FK -> warehouses(id)`|No|Kho lưu trữ hàng|
@@ -119,8 +103,6 @@ Thiết kế SQL chuẩn hóa 3NF (Third Normal Form) kết hợp các ràng bu�
 |`updated_at`|`TIMESTAMPTZ`|`DEFAULT now()`|No|Thời điểm cập nhật sau cùng|
 
 **Bảng: `security_audit_logs` (Nhật Ký Bảo Mật & Kiểm Toán Giao Dịch)**
-
-  
 
 |**Cột**|**Kiểu Dữ Liệu**|**Ràng Buộc**|**Null**|**Mô Tả**|
 |---|---|---|---|---|
@@ -270,29 +252,16 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE O
 ### 3. Phân Tích Chuyên Sâu Nghiệp Vụ, Kiến Trúc & Bảo Mật SQL
 
 - **Tách biệt Ngày Lập (`receipt_date`) và Ngày Thực Nhập (`actual_received_date`):** Hướng dẫn Thông tư 200 quy định phiếu do phòng mua hàng hoặc xưởng sản xuất lập (ngày lập phiếu). Khi hàng về đến cổng kho, thủ kho tiến hành kiểm đếm, ghi ngày tháng thực nhận và ký tên trước khi ghi Thẻ kho. Thiết kế tách 2 trường ngày phản ánh đúng quy trình luân chuyển chứng từ.
-    
-      
-    
+
 - **Snapshot Bất Biến (Immutability Pattern):** Hai trường `product_name_snapshot` và `unit_snapshot` trong `goods_receipt_items` lưu lại chính xác tên và đơn vị tính tại thời điểm giao dịch. Kể cả khi danh mục `products` sửa đổi quy cách, chứng từ kế toán trong quá khứ không bị sai lệch thông tin khi in lại hay thanh tra thuế.
-    
-      
-    
+
 - **Số Lượng Thực Nhập Quyết Định Giá Trị:** Mẫu 01-VT quy định rõ `Cột 4 (Thành tiền) = Cột 2 (Thực nhập) * Cột 3 (Đơn giá)`. Tồn kho và giá trị tài sản ghi nhận chỉ tăng theo `actual_qty`. Cột `doc_qty` (chứng từ gốc) dùng đối soát công nợ hao hụt với nhà cung cấp.
-    
-      
-    
+
 - **Audit Trail 4 Vai Trò Ký Tên:** Lưu trữ đầy đủ danh tính của Người lập, Người giao, Thủ kho và Kế toán trưởng để đáp ứng yêu cầu pháp lý về chứng từ kế toán.
-    
-      
-    
+
 - **Triệt Tiêu 100% Lỗ Hổng SQL Injection:** Mọi thao tác I/O trong ứng dụng bắt buộc sử dụng cơ chế Parameterized Queries (`$1`, `$2`, ...). Driver `pg` của Node.js sẽ gửi riêng biệt câu lệnh SQL và tham số dữ liệu tới PostgreSQL Engine qua giao thức nhị phân (Binary Protocol), biến mọi ký tự escape độc hại (`'`, `"`, `;`, `--`, `UNION SELECT`) thành chuỗi dữ liệu thuần túy.
-    
-      
-    
+
 - **Phòng Chống Race Condition & Deadlock Trong Transaction:** Khi nhiều giao dịch nhập/xuất kho diễn ra cùng lúc trên cùng 1 mặt hàng, sử dụng cú pháp `ON CONFLICT ... DO UPDATE` để tăng số dư tồn kho tức thời mà không gây xung đột khóa dòng hoặc Lost Update.
-    
-      
-    
 
 ### 4. Câu Lệnh Vận Hành Thực Tế Đầy Đủ (Production-Grade SQL Operations)
 
@@ -468,33 +437,20 @@ CREATE INDEX idx_audit_created_at ON security_audit_logs(created_at DESC);
 ### 5. Hướng Dẫn Mở Rộng Hệ Thống SQL (Extensibility Guide)
 
 - **Sổ Kế Toán Chi Tiết & Sổ Cái (General Ledger Integration):** Theo Điều 24 Luật Kế toán, hệ thống có thể tạo thêm bảng `general_ledger_entries (id, entry_date, doc_id, doc_type, account_no, debit_amount, credit_amount, description)` để trích xuất tự động các dòng định khoản Nợ/Có từ `goods_receipt_items` sang sổ cái kế toán tổng hợp.
-    
-      
-    
+
 - **Quản lý Lô & Hạn Sử Dụng (FEFO/FIFO):** Bổ sung các cột `lot_number VARCHAR(100)`, `manufacturing_date DATE`, `expiry_date DATE` vào `goods_receipt_items` để quản lý hạn dùng hàng nhập.
-    
-      
-    
+
 - **Phân Vùng Bảng Lớn (Declarative Partitioning):** Khi số lượng chứng từ vượt 10 triệu bản ghi, áp dụng Range Partitioning trên `goods_receipts` theo `receipt_date` (chia partition theo năm `goods_receipts_2026`, `goods_receipts_2027`) giúp tối ưu truy vấn báo cáo tài chính hàng năm và thu hẹp phạm vi quét bảng.
-    
-      
-    
+
 - **Mã Hóa Dữ Liệu Nhạy Cảm (Data Encryption at Rest):** Sử dụng hàm `pgp_sym_encrypt()` của extension `pgcrypto`để mã hóa các trường giá trị hợp đồng nhạy cảm trước khi ghi xuống đĩa cứng.
-    
-      
-    
 
 ## PHẦN 2: HỆ THỐNG CƠ SỞ DỮ LIỆU TÀI LIỆU (NOSQL - CLOUD FIRESTORE / MONGODB)
 
 Mô hình Document NoSQL áp dụng cấu trúc **Denormalization** và **Embedded Document** nhằm tối ưu chi phí đọc và hỗ trợ truy vấn nhanh toàn bộ chứng từ trên các ứng dụng Flutter/Mobile.
 
-  
-
 ### 1. Cấu Trúc Tài Liệu Tối Giản (Document Schema)
 
 **Collection: `products`**
-
-  
 
 |**Trường**|**Kiểu Dữ Liệu**|**Bắt Buộc**|**Mô Tả**|
 |---|---|---|---|
@@ -507,8 +463,6 @@ Mô hình Document NoSQL áp dụng cấu trúc **Denormalization** và **Emb
 |`createdAt`|`Timestamp`|Có|Thời gian khởi tạo|
 
 **Collection: `goods_receipts`**
-
-  
 
 |**Trường**|**Kiểu Dữ Liệu**|**Bắt Buộc**|**Mô Tả**|
 |---|---|---|---|
@@ -533,8 +487,6 @@ Mô hình Document NoSQL áp dụng cấu trúc **Denormalization** và **Emb
 |`updatedAt`|`Timestamp`|Có|Thời gian cập nhật sau cùng|
 
 **Cấu trúc từng phần tử trong mảng `items`:**
-
-  
 
 |**Thuộc Tính Con**|**Kiểu Dữ Liệu**|**Bắt Buộc**|**Mô Tả**|
 |---|---|---|---|
@@ -622,21 +574,12 @@ JSON
 ### 3. Phân Tích Chuyên Sâu Nghiệp Vụ & Kiến Trúc Bảo Mật NoSQL
 
 - **Tối Ưu Single-Document Read:** Toàn bộ thông tin phiếu từ đơn vị, kho, người giao, chữ ký đến mảng các mặt hàng đều nằm gọn trong 1 document duy nhất. Ứng dụng client chỉ tốn đúng 1 Read Operation để hiển thị toàn bộ phiếu, tiết kiệm chi phí Firestore.
-    
-      
-    
+
 - **Đóng Băng Dữ Liệu Lịch Sử:** Các thuộc tính `productName`, `unit` được lưu trực tiếp trong mảng `items`. Nếu thông tin danh mục gốc thay đổi trong tương lai, dữ liệu lịch sử của phiếu nhập vẫn giữ nguyên giá trị kiểm toán.
-    
-      
-    
+
 - **Atomic Inventory Increment (Chống Race Condition):** Sử dụng `FieldValue.increment(actualQty)` đảm bảo việc cập nhật tồn kho diễn ra an toàn, tránh lỗi xung đột (Race Conditions) khi nhiều người cùng thao tác.
-    
-      
-    
+
 - **Bảo Mật Cấp Document (Fine-Grained Security Rules):** Chặn đứng việc can thiệp trực tiếp vào số dư kho từ Client-side. Chỉ cho phép cập nhật tồn kho thông qua Cloud Functions hoặc Backend Admin SDK có xác thực.
-    
-      
-    
 
 ### 4. Code Mẫu Vận Hành NoSQL Hoàn Chỉnh (TypeScript + Cloud Firestore)
 
@@ -757,8 +700,6 @@ export async function createAndConfirmGoodsReceipt(payload: CreateReceiptPayload
 
 **File: `firestore.indexes.json`**
 
-  
-
 JSON
 
 ```JSON
@@ -850,11 +791,7 @@ service cloud.firestore {
 ### 5. Hướng Dẫn Mở Rộng Hệ Thống NoSQL (Extensibility Guide)
 
 - **Tách Sub-collection khi vượt quy mô:** Nếu phiếu nhập hàng cảng hoặc container có số dòng vượt quá 200 dòng (tiệm cận giới hạn 1MB/document), chuyển cấu trúc mảng `items: []` thành Sub-collection riêng: `/goods_receipts/{receiptId}/items/{itemId}`.
-    
-      
-    
+
 - **Kiến Trúc Event Sourcing Qua Cloud Functions:** Khi phiếu đổi trạng thái sang `CONFIRMED`, kích hoạt Firebase Cloud Function ghi log giao dịch bất biến vào collection `inventory_ledger` để phục vụ đối soát thẻ kho tự động.
-    
-      
-    
+
 - **Mở Rộng Đa Tiền Tệ & Thuế GTGT:** Bổ sung trường `currency: { code: "USD", rate: 25400 }` vào cấp Root Document và thêm `tax: { vatRate: 10, vatAmount: 147750 }` vào từng item trong mảng `items`.
