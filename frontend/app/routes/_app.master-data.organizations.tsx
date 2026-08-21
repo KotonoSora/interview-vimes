@@ -11,6 +11,16 @@ import {
 } from "~/middleware/auth-trace.server";
 import { masterDataService } from "~/services/master-data.service";
 
+export function meta() {
+  return [
+    { title: "Danh Mục Đơn Vị & Phòng Ban | VIMES Inventory" },
+    {
+      name: "description",
+      content: "Tra cứu thông tin pháp nhân và các bộ phận lập phiếu.",
+    },
+  ];
+}
+
 export const middleware = [traceAndAuthMiddleware];
 
 export async function loader({ context }: Route.LoaderArgs) {
@@ -21,23 +31,19 @@ export async function loader({ context }: Route.LoaderArgs) {
 
 export default function MasterDataOrganizationsRoute() {
   const { organizations } = useLoaderData<typeof loader>();
-
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-4 max-w-7xl mx-auto px-2 sm:px-4">
       <div>
-        <h1 className="text-xl font-bold tracking-tight">
-          Danh Mục Đơn Vị & Phòng Ban
-        </h1>
-        <p className="text-xs text-muted-foreground mt-0.5">
-          Danh sách các đơn vị, chi nhánh và phòng ban phát sinh chứng từ
+        <h1 className="text-lg font-bold">Danh Mục Đơn Vị & Phòng Ban</h1>
+        <p className="text-xs text-muted-foreground">
+          Đơn vị chủ quản và các bộ phận phát sinh chứng từ
         </p>
       </div>
-
       <Card>
-        <CardHeader className="py-4 px-6 border-b">
-          <CardTitle className="text-sm font-semibold flex items-center gap-2">
-            <Building2 className="h-4 w-4 text-primary" />
-            Danh Sách Đơn Vị ({organizations.length})
+        <CardHeader className="py-2.5 px-4 border-b">
+          <CardTitle className="text-xs font-semibold flex items-center gap-2">
+            <Building2 className="h-4 w-4 text-primary" /> Danh Sách Đơn Vị (
+            {organizations.length})
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">

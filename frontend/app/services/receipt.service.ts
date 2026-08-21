@@ -48,19 +48,8 @@ export interface GoodsReceiptDetail {
     | "CAPITAL_CONTRIBUTION"
     | "INVENTORY_SURPLUS";
   description?: string | null;
-  organization?: {
-    id: string;
-    name: string;
-    department?: string;
-    taxCode?: string;
-    address?: string;
-  };
-  warehouse?: {
-    id: string;
-    name: string;
-    code?: string;
-    location?: string;
-  };
+  organization?: { id: string; name: string; department?: string };
+  warehouse?: { id: string; name: string; code?: string; location?: string };
   delivererName: string;
   docReference?: string | null;
   docDate?: string | null;
@@ -94,24 +83,15 @@ export const receiptService = {
   async getReceipts(params?: GetReceiptsQuery, requestId?: string) {
     return apiClient<PaginatedApiResponse<GoodsReceiptListItem>>(
       "/goods-receipts",
-      {
-        method: "GET",
-        params,
-        requestId,
-      },
+      { method: "GET", params, requestId },
     );
   },
-
   async getReceiptById(id: string, requestId?: string) {
     return apiClient<BaseApiResponse<GoodsReceiptDetail>>(
       `/goods-receipts/${id}`,
-      {
-        method: "GET",
-        requestId,
-      },
+      { method: "GET", requestId },
     );
   },
-
   async createReceipt(data: CreateGoodsReceiptRequest, requestId?: string) {
     return apiClient<
       BaseApiResponse<{ receiptId: string; totalAmount: number }>
@@ -121,7 +101,6 @@ export const receiptService = {
       requestId,
     });
   },
-
   async updateReceipt(
     id: string,
     data: UpdateGoodsReceiptRequest,
@@ -135,16 +114,12 @@ export const receiptService = {
       requestId,
     });
   },
-
   async deleteOrCancelReceipt(id: string, requestId?: string) {
     return apiClient<
       BaseApiResponse<{
         receiptId: string;
         action: "HARD_DELETED" | "CANCELLED_AND_REVERSED";
       }>
-    >(`/goods-receipts/${id}`, {
-      method: "DELETE",
-      requestId,
-    });
+    >(`/goods-receipts/${id}`, { method: "DELETE", requestId });
   },
 };

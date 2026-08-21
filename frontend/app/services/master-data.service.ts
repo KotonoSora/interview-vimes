@@ -35,24 +35,16 @@ export const masterDataService = {
       },
     );
   },
-
   async getWarehouses(requestId?: string) {
     return apiClient<BaseApiResponse<MasterWarehouse[]>>(
       "/master-data/warehouses",
-      {
-        method: "GET",
-        requestId,
-      },
+      { method: "GET", requestId },
     );
   },
-
   async getOrganizations(requestId?: string) {
     return apiClient<BaseApiResponse<MasterOrganization[]>>(
       "/master-data/organizations",
-      {
-        method: "GET",
-        requestId,
-      },
+      { method: "GET", requestId },
     );
   },
 };

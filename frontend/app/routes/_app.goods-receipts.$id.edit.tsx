@@ -1,4 +1,4 @@
-import { ArrowLeft, Loader2, Save } from "lucide-react";
+import { ArrowLeft, FileSpreadsheet, Loader2, Save } from "lucide-react";
 import { useEffect, useState } from "react";
 import { data, useFetcher, useLoaderData, useNavigate } from "react-router";
 
@@ -7,12 +7,20 @@ import type { Route } from "./+types/_app.goods-receipts.$id.edit";
 import type { ReceiptItemRow } from "~/components/goods-receipt/receipt-items-table";
 import type { UpdateGoodsReceiptRequest } from "~/types/goods-receipt.types";
 
-import { ReceiptFooterSection } from "~/components/goods-receipt/receipt-footer-section";
-import { ReceiptGeneralSection } from "~/components/goods-receipt/receipt-general-section";
-import { ReceiptHeaderSection } from "~/components/goods-receipt/receipt-header-section";
 import { ReceiptItemsTable } from "~/components/goods-receipt/receipt-items-table";
 import { Button } from "~/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
+import { Input } from "~/components/ui/input";
+import { Label } from "~/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "~/components/ui/select";
 import { toast } from "~/components/ui/toast";
+import { RECEIPT_TYPE_LABELS } from "~/constants/receipt.constants";
 import { convertNumberToVietnameseWords } from "~/lib/number-to-words";
 import {
   requestIdContext,
@@ -22,15 +30,30 @@ import { masterDataService } from "~/services/master-data.service";
 import { receiptService } from "~/services/receipt.service";
 import { UpdateGoodsReceiptSchema } from "~/types/goods-receipt.types";
 
+export function meta({ matches }: Route.MetaArgs) {
+  const match = matches?.find(
+    (m) => m?.id === "routes/_app.goods-receipts.$id.edit",
+  );
+  const data = (
+    match && "loaderData" in match ? match.loaderData : undefined
+  ) as { receipt?: { receiptNumber?: string } } | undefined;
+  const number = data?.receipt?.receiptNumber || "Chứng Từ";
+  return [
+    { title: `Chỉnh Sửa ${number} | VIMES Inventory` },
+    {
+      name: "description",
+      content:
+        "Cập nhật thông tin chứng từ và điều chỉnh số lượng vật tư nhập kho.",
+    },
+  ];
+}
+
 export const middleware = [traceAndAuthMiddleware];
 
 export async function loader({ params, context }: Route.LoaderArgs) {
   const requestId = context.get(requestIdContext) || crypto.randomUUID();
   const id = params.id;
-
-  if (!id) {
-    throw new Response("Mã chứng từ không hợp lệ", { status: 400 });
-  }
+  if (!id) throw new Response("Mã không hợp lệ", { status: 400 });
 
   const [receiptRes, orgsRes, warehousesRes, productsRes] = await Promise.all([
     receiptService.getReceiptById(id, requestId),
@@ -39,16 +62,10 @@ export async function loader({ params, context }: Route.LoaderArgs) {
     masterDataService.getProducts(undefined, requestId),
   ]);
 
-  if (!receiptRes.data) {
+  if (!receiptRes.data)
     throw new Response("Chứng từ không tồn tại", { status: 404 });
-  }
-
-  if (receiptRes.data.status === "CANCELLED") {
-    throw new Response(
-      "Không thể chỉnh sửa phiếu nhập đã ở trạng thái CANCELLED",
-      { status: 422 },
-    );
-  }
+  if (receiptRes.data.status === "CANCELLED")
+    throw new Response("Không thể sửa phiếu đã HỦY", { status: 422 });
 
   return {
     receipt: receiptRes.data,
@@ -61,28 +78,20 @@ export async function loader({ params, context }: Route.LoaderArgs) {
 export async function action({ request, params, context }: Route.ActionArgs) {
   const requestId = context.get(requestIdContext) || crypto.randomUUID();
   const id = params.id;
-
-  if (!id) {
+  if (!id)
     return data(
-      { success: false, message: "Mã chứng từ không hợp lệ" },
+      { success: false, message: "Mã không hợp lệ" },
       { status: 400 },
     );
-  }
 
   try {
     const rawData = await request.json();
     const parsedData = UpdateGoodsReceiptSchema.parse(rawData);
     await receiptService.updateReceipt(id, parsedData, requestId);
-
-    return data({
-      success: true,
-      message: "Cập nhật phiếu nhập kho thành công",
-    });
+    return data({ success: true, message: "Cập nhật phiếu thành công" });
   } catch (error: unknown) {
     const message =
-      error instanceof Error
-        ? error.message
-        : "Không thể cập nhật phiếu nhập kho";
+      error instanceof Error ? error.message : "Không thể cập nhật";
     return data({ success: false, message }, { status: 400 });
   }
 }
@@ -96,11 +105,17 @@ export default function EditGoodsReceiptRoute() {
   const [organizationId, setOrganizationId] = useState(
     receipt.organization?.id || organizations[0]?.id || "",
   );
-  const [receiptNumber] = useState(receipt.receiptNumber);
+  const [warehouseId, setWarehouseId] = useState(
+    receipt.warehouse?.id || warehouses[0]?.id || "",
+  );
   const [receiptDate, setReceiptDate] = useState(receipt.receiptDate);
   const [receiptType, setReceiptType] = useState<
     UpdateGoodsReceiptRequest["receiptType"]
   >(receipt.receiptType || "PURCHASE");
+  const [delivererName, setDelivererName] = useState(
+    receipt.delivererName || "",
+  );
+  const [docReference, setDocReference] = useState(receipt.docReference || "");
   const [debitAccount, setDebitAccount] = useState(
     receipt.debitAccount || "152",
   );
@@ -108,37 +123,9 @@ export default function EditGoodsReceiptRoute() {
     receipt.creditAccount || "331",
   );
 
-  const [warehouseId, setWarehouseId] = useState(
-    receipt.warehouse?.id || warehouses[0]?.id || "",
-  );
-  const [delivererName, setDelivererName] = useState(
-    receipt.delivererName || "",
-  );
-  const [actualReceivedDate, setActualReceivedDate] = useState(
-    receipt.actualReceivedDate || receipt.receiptDate,
-  );
-  const [docReference, setDocReference] = useState(receipt.docReference || "");
-  const [docDate, setDocDate] = useState(receipt.docDate || "");
-  const [docOrigin, setDocOrigin] = useState(receipt.docOrigin || "");
-  const [description, setDescription] = useState(receipt.description || "");
-
-  const [attachedDocCount, setAttachedDocCount] = useState(
-    receipt.attachedDocCount || "",
-  );
-  const [creatorName, setCreatorName] = useState(
-    receipt.signatures?.creatorName || "",
-  );
-  const [storekeeperName, setStorekeeperName] = useState(
-    receipt.signatures?.storekeeperName || "",
-  );
-  const [chiefAccountantName, setChiefAccountantName] = useState(
-    receipt.signatures?.chiefAccountantName || "",
-  );
-
   const [items, setItems] = useState<ReceiptItemRow[]>(
     receipt.items.map((i) => ({
       productId: i.productId,
-      productCode: i.productCode || "",
       productNameSnapshot: i.productName,
       unitSnapshot: i.unit,
       docQty: i.docQty,
@@ -158,42 +145,33 @@ export default function EditGoodsReceiptRoute() {
 
   useEffect(() => {
     if (!fetcher.data) return;
-
     if (fetcher.data.success) {
       toast.add({
         type: "success",
-        title: "Cập nhật thành công",
-        description: `Chứng từ ${receiptNumber} đã được cập nhật.`,
+        title: "Thành công",
+        description: "Chứng từ đã được cập nhật.",
       });
       navigate(`/goods-receipts/${receipt.id}`);
     } else {
       toast.add({
         type: "error",
-        title: "Lỗi cập nhật",
-        description: fetcher.data.message || "Vui lòng kiểm tra lại dữ liệu.",
+        title: "Lỗi",
+        description: fetcher.data.message || "Kiểm tra lại dữ liệu.",
       });
     }
-  }, [fetcher.data, navigate, receipt.id, receiptNumber]);
+  }, [fetcher.data, navigate, receipt.id]);
 
   const handleUpdate = () => {
     const payload: UpdateGoodsReceiptRequest = {
       receiptDate,
-      actualReceivedDate: actualReceivedDate || null,
       organizationId,
       warehouseId,
       receiptType,
-      description: description || null,
       delivererName,
       docReference: docReference || null,
-      docDate: docDate || null,
-      docOrigin: docOrigin || null,
       debitAccount: debitAccount || null,
       creditAccount: creditAccount || null,
       totalAmountWords: totalAmountWords || null,
-      attachedDocCount: attachedDocCount || null,
-      creatorName: creatorName || null,
-      storekeeperName: storekeeperName || null,
-      chiefAccountantName: chiefAccountantName || null,
       status: receipt.status as UpdateGoodsReceiptRequest["status"],
       items: items.map((it) => ({
         productId: it.productId,
@@ -217,8 +195,8 @@ export default function EditGoodsReceiptRoute() {
   const isSubmitting = fetcher.state === "submitting";
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-12">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 max-w-6xl mx-auto pb-12 px-2 sm:px-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b">
         <div className="flex items-center gap-3">
           <Button
             variant="outline"
@@ -229,76 +207,97 @@ export default function EditGoodsReceiptRoute() {
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-            <h1 className="text-xl font-bold tracking-tight">
-              Chỉnh Sửa Phiếu Nhập: {receipt.receiptNumber}
+            <h1 className="text-lg font-bold">
+              Chỉnh Sửa: {receipt.receiptNumber}
             </h1>
             <p className="text-xs text-muted-foreground">
-              Mẫu 01 - VT theo Thông tư 200/2014/TT-BTC
+              Mẫu số 01 - VT theo TT 200/2014/TT-BTC
             </p>
           </div>
         </div>
-        <Button size="sm" onClick={handleUpdate} disabled={isSubmitting}>
+        <Button
+          size="sm"
+          onClick={handleUpdate}
+          disabled={isSubmitting}
+          className="h-8 text-xs"
+        >
           {isSubmitting ? (
-            <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+            <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
           ) : (
-            <Save className="h-4 w-4 mr-1.5" />
-          )}
+            <Save className="h-3.5 w-3.5 mr-1.5" />
+          )}{" "}
           Lưu Thay Đổi
         </Button>
       </div>
 
-      <ReceiptHeaderSection
-        organizations={organizations}
-        organizationId={organizationId}
-        setOrganizationId={setOrganizationId}
-        receiptNumber={receiptNumber}
-        setReceiptNumber={() => {}}
-        receiptDate={receiptDate}
-        setReceiptDate={setReceiptDate}
-        receiptType={receiptType || "PURCHASE"}
-        setReceiptType={(val) =>
-          setReceiptType(val as UpdateGoodsReceiptRequest["receiptType"])
-        }
-        debitAccount={debitAccount}
-        setDebitAccount={setDebitAccount}
-        creditAccount={creditAccount}
-        setCreditAccount={setCreditAccount}
-      />
-
-      <ReceiptGeneralSection
-        warehouses={warehouses}
-        warehouseId={warehouseId}
-        setWarehouseId={setWarehouseId}
-        delivererName={delivererName}
-        setDelivererName={setDelivererName}
-        actualReceivedDate={actualReceivedDate}
-        setActualReceivedDate={setActualReceivedDate}
-        docReference={docReference}
-        setDocReference={setDocReference}
-        docDate={docDate}
-        setDocDate={setDocDate}
-        docOrigin={docOrigin}
-        setDocOrigin={setDocOrigin}
-        description={description}
-        setDescription={setDescription}
-      />
+      <Card>
+        <CardHeader className="py-2.5 px-4 border-b">
+          <CardTitle className="text-xs font-semibold uppercase text-muted-foreground flex items-center gap-1.5">
+            <FileSpreadsheet className="h-4 w-4 text-primary" /> Thông tin chung
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="space-y-1">
+            <Label className="text-xs">Ngày lập</Label>
+            <Input
+              type="date"
+              value={receiptDate}
+              onChange={(e) => setReceiptDate(e.target.value)}
+              className="h-8 text-xs"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Đơn vị</Label>
+            <Select
+              value={organizationId}
+              onValueChange={(val) => val && setOrganizationId(val)}
+            >
+              <SelectTrigger className="h-8 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {organizations.map((org) => (
+                  <SelectItem key={org.id} value={org.id} className="text-xs">
+                    {org.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Kho tiếp nhận</Label>
+            <Select
+              value={warehouseId}
+              onValueChange={(val) => val && setWarehouseId(val)}
+            >
+              <SelectTrigger className="h-8 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {warehouses.map((wh) => (
+                  <SelectItem key={wh.id} value={wh.id} className="text-xs">
+                    {wh.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Người giao hàng</Label>
+            <Input
+              value={delivererName}
+              onChange={(e) => setDelivererName(e.target.value)}
+              className="h-8 text-xs"
+            />
+          </div>
+        </CardContent>
+      </Card>
 
       <ReceiptItemsTable
         items={items}
         setItems={setItems}
         products={products}
         totalAmountWords={totalAmountWords}
-      />
-
-      <ReceiptFooterSection
-        attachedDocCount={attachedDocCount}
-        setAttachedDocCount={setAttachedDocCount}
-        creatorName={creatorName}
-        setCreatorName={setCreatorName}
-        storekeeperName={storekeeperName}
-        setStorekeeperName={setStorekeeperName}
-        chiefAccountantName={chiefAccountantName}
-        setChiefAccountantName={setChiefAccountantName}
       />
     </div>
   );

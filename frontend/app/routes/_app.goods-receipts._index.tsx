@@ -26,6 +26,16 @@ import {
 import { masterDataService } from "~/services/master-data.service";
 import { receiptService } from "~/services/receipt.service";
 
+export function meta() {
+  return [
+    { title: "Sổ Theo Dõi Phiếu Nhập Kho | VIMES Inventory" },
+    {
+      name: "description",
+      content: "Danh sách, tìm kiếm và lọc chứng từ Phiếu Nhập Kho Mẫu 01-VT.",
+    },
+  ];
+}
+
 export const middleware = [traceAndAuthMiddleware];
 
 export async function loader({ request, context }: Route.LoaderArgs) {
@@ -47,15 +57,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 
   const [receiptsRes, warehousesRes] = await Promise.all([
     receiptService.getReceipts(
-      {
-        search,
-        warehouseId,
-        status,
-        fromDate,
-        toDate,
-        page,
-        limit: 50,
-      },
+      { search, warehouseId, status, fromDate, toDate, page, limit: 50 },
       requestId,
     ),
     masterDataService.getWarehouses(requestId),
@@ -80,21 +82,19 @@ export default function GoodsReceiptsIndexRoute() {
     useLoaderData<typeof loader>();
 
   return (
-    <div className="space-y-6 max-w-[1400px] mx-auto">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="space-y-4 max-w-[1400px] mx-auto px-2 sm:px-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b">
         <div>
-          <h1 className="text-xl font-bold tracking-tight">
-            Sổ Theo Dõi Phiếu Nhập Kho
-          </h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
+          <h1 className="text-lg font-bold">Sổ Theo Dõi Phiếu Nhập Kho</h1>
+          <p className="text-xs text-muted-foreground">
             Mẫu số 01 - VT ban hành theo Thông tư 200/2014/TT-BTC
           </p>
         </div>
         <Link
           to="/goods-receipts/new"
-          className="inline-flex items-center justify-center rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground shadow hover:bg-primary/90 transition-colors"
+          className="inline-flex items-center gap-1.5 bg-primary text-primary-foreground px-3 py-1.5 rounded-md text-xs font-medium shadow hover:bg-primary/90"
         >
-          <Plus className="h-4 w-4 mr-1.5" /> Lập Phiếu Mới
+          <Plus className="h-3.5 w-3.5" /> Lập Phiếu Mới
         </Link>
       </div>
 
@@ -104,154 +104,107 @@ export default function GoodsReceiptsIndexRoute() {
       />
 
       <Card>
-        <CardHeader className="py-3 px-6 border-b flex flex-row items-center justify-between">
-          <CardTitle className="text-sm font-semibold flex items-center gap-2">
-            <FileText className="h-4 w-4 text-primary" />
-            Danh Sách Chứng Từ Nhập Kho ({receipts.length})
+        <CardHeader className="py-2.5 px-4 border-b flex flex-row items-center justify-between">
+          <CardTitle className="text-xs font-semibold flex items-center gap-2">
+            <FileText className="h-4 w-4 text-primary" /> Danh Sách Chứng Từ (
+            {receipts.length})
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0 overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow className="bg-muted/40">
-                <TableHead className="w-[120px] font-semibold">
-                  Số phiếu
-                </TableHead>
-                <TableHead className="w-[100px] font-semibold">
-                  Ngày lập
-                </TableHead>
-                <TableHead className="w-[120px] font-semibold">
-                  Loại nhập
-                </TableHead>
-                <TableHead className="min-w-[140px] font-semibold">
-                  Kho tiếp nhận
-                </TableHead>
-                <TableHead className="min-w-[150px] font-semibold">
-                  Người giao hàng
-                </TableHead>
-                <TableHead className="min-w-[120px] font-semibold">
-                  Số CT gốc
-                </TableHead>
-                <TableHead className="w-[110px] font-semibold text-center">
+              <TableRow className="bg-muted/40 text-xs">
+                <TableHead className="w-28 font-semibold">Số phiếu</TableHead>
+                <TableHead className="w-24 font-semibold">Ngày lập</TableHead>
+                <TableHead className="w-28 font-semibold">Loại nhập</TableHead>
+                <TableHead className="font-semibold">Kho nhập</TableHead>
+                <TableHead className="font-semibold">Người giao</TableHead>
+                <TableHead className="w-28 font-semibold text-center">
                   Bút toán
                 </TableHead>
-                <TableHead className="w-[130px] font-semibold text-right">
-                  Tổng tiền (VNĐ)
+                <TableHead className="w-32 font-semibold text-right">
+                  Tổng tiền
                 </TableHead>
-                <TableHead className="w-[110px] font-semibold text-center">
+                <TableHead className="w-24 font-semibold text-center">
                   Trạng thái
                 </TableHead>
-                <TableHead className="w-[90px] text-center font-semibold">
-                  Thao tác
-                </TableHead>
+                <TableHead className="w-20 text-center font-semibold"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {receipts.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={10}
-                    className="h-36 text-center text-xs text-muted-foreground"
+                    colSpan={9}
+                    className="h-28 text-center text-xs text-muted-foreground"
                   >
-                    Chưa có chứng từ nào được ghi nhận hoặc không tìm thấy theo
-                    điều kiện lọc.
+                    Không có chứng từ nào.
                   </TableCell>
                 </TableRow>
               ) : (
-                receipts.map((row) => (
-                  <TableRow
-                    key={row.id}
-                    className="hover:bg-muted/30 transition-colors"
-                  >
-                    {/* Số phiếu */}
-                    <TableCell className="font-semibold text-xs text-primary whitespace-nowrap">
+                receipts.map((r) => (
+                  <TableRow key={r.id} className="text-xs hover:bg-muted/20">
+                    <TableCell className="font-semibold text-primary font-mono">
                       <Link
-                        to={`/goods-receipts/${row.id}`}
+                        to={`/goods-receipts/${r.id}`}
                         className="hover:underline"
                       >
-                        {row.receiptNumber}
+                        {r.receiptNumber}
                       </Link>
                     </TableCell>
-
-                    {/* Ngày lập */}
-                    <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
-                      {row.receiptDate}
+                    <TableCell className="text-muted-foreground">
+                      {r.receiptDate}
                     </TableCell>
-
-                    {/* Loại nhập */}
-                    <TableCell className="text-xs whitespace-nowrap">
-                      <span className="text-muted-foreground">
-                        {RECEIPT_TYPE_LABELS[row.receiptType as ReceiptType] ||
-                          row.receiptType ||
-                          "Mua ngoài"}
+                    <TableCell className="text-muted-foreground">
+                      {RECEIPT_TYPE_LABELS[r.receiptType as ReceiptType] ||
+                        r.receiptType ||
+                        "Mua ngoài"}
+                    </TableCell>
+                    <TableCell className="font-medium">
+                      {r.warehouseName || "—"}
+                    </TableCell>
+                    <TableCell>{r.delivererName}</TableCell>
+                    <TableCell className="text-center font-mono text-[11px]">
+                      <span className="text-blue-600">
+                        N:{r.debitAccount || "152"}
+                      </span>{" "}
+                      /{" "}
+                      <span className="text-amber-600">
+                        C:{r.creditAccount || "331"}
                       </span>
                     </TableCell>
-
-                    {/* Kho tiếp nhận */}
-                    <TableCell className="text-xs font-medium">
-                      {row.warehouseName || "—"}
+                    <TableCell className="text-right font-mono font-semibold">
+                      {formatCurrencyVND(r.totalAmount || 0)}
                     </TableCell>
-
-                    {/* Người giao hàng */}
-                    <TableCell className="text-xs text-foreground">
-                      {row.delivererName || "—"}
-                    </TableCell>
-
-                    {/* Số CT gốc */}
-                    <TableCell className="text-xs text-muted-foreground">
-                      {row.docReference || "—"}
-                    </TableCell>
-
-                    {/* Bút toán Nợ/Có */}
-                    <TableCell className="text-xs text-center font-mono whitespace-nowrap">
-                      <span className="text-blue-600 dark:text-blue-400">
-                        N:{row.debitAccount || "152"}
-                      </span>
-                      {" / "}
-                      <span className="text-amber-600 dark:text-amber-400">
-                        C:{row.creditAccount || "331"}
-                      </span>
-                    </TableCell>
-
-                    {/* Tổng tiền */}
-                    <TableCell className="text-right font-semibold text-xs whitespace-nowrap">
-                      {formatCurrencyVND(row.totalAmount || 0)}
-                    </TableCell>
-
-                    {/* Trạng thái */}
-                    <TableCell className="text-center whitespace-nowrap">
+                    <TableCell className="text-center">
                       <Badge
                         variant={
-                          row.status === "CONFIRMED"
+                          r.status === "CONFIRMED"
                             ? "default"
-                            : row.status === "DRAFT"
+                            : r.status === "DRAFT"
                               ? "secondary"
                               : "destructive"
                         }
-                        className="text-[10px] px-2 py-0.5"
+                        className="text-[10px]"
                       >
-                        {row.status === "CONFIRMED"
-                          ? "Đã nhập kho"
-                          : row.status === "DRAFT"
-                            ? "Bản nháp"
+                        {r.status === "CONFIRMED"
+                          ? "Đã nhập"
+                          : r.status === "DRAFT"
+                            ? "Nháp"
                             : "Đã hủy"}
                       </Badge>
                     </TableCell>
-
-                    {/* Thao tác */}
                     <TableCell className="text-center">
                       <div className="flex items-center justify-center gap-1">
                         <Link
-                          to={`/goods-receipts/${row.id}`}
-                          title="Xem chi tiết & In A4"
-                          className="inline-flex items-center justify-center h-7 w-7 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                          to={`/goods-receipts/${r.id}`}
+                          className="p-1 text-muted-foreground hover:text-foreground"
                         >
                           <Eye className="h-3.5 w-3.5" />
                         </Link>
                         <Link
-                          to={`/goods-receipts/${row.id}/edit`}
-                          title="Chỉnh sửa chứng từ"
-                          className="inline-flex items-center justify-center h-7 w-7 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                          to={`/goods-receipts/${r.id}/edit`}
+                          className="p-1 text-muted-foreground hover:text-foreground"
                         >
                           <Edit className="h-3.5 w-3.5" />
                         </Link>

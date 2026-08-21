@@ -4,7 +4,6 @@ import { useSubmit } from "react-router";
 
 import type { MasterProduct } from "~/services/master-data.service";
 
-import { Badge } from "~/components/ui/badge";
 import { Input } from "~/components/ui/input";
 import {
   Table,
@@ -16,91 +15,70 @@ import {
 } from "~/components/ui/table";
 import { formatCurrencyVND } from "~/lib/formatters";
 
-export interface ProductTableSectionProps {
-  products: MasterProduct[];
-  initialSearch?: string;
-}
-
 export function ProductTableSection({
   products = [],
   initialSearch = "",
-}: ProductTableSectionProps) {
+}: {
+  products: MasterProduct[];
+  initialSearch?: string;
+}) {
   const submit = useSubmit();
   const [searchTerm, setSearchTerm] = useState(initialSearch);
 
-  const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData();
-    if (searchTerm.trim()) {
-      formData.set("search", searchTerm.trim());
-    }
-    submit(formData, { method: "get" });
-  };
-
   return (
-    <div className="space-y-4">
-      <div className="p-4 border-b">
-        <form onSubmit={handleSearch} className="flex gap-2 max-w-sm">
+    <div className="space-y-3">
+      <div className="p-3 border-b">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            const fd = new FormData();
+            if (searchTerm.trim()) fd.set("search", searchTerm.trim());
+            submit(fd, { method: "get" });
+          }}
+          className="flex gap-2 max-w-sm"
+        >
           <div className="relative flex-1">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
             <Input
-              type="text"
-              placeholder="Tìm theo mã hoặc tên vật tư..."
+              placeholder="Tìm theo mã hoặc tên..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-8 text-xs h-9"
+              className="pl-8 text-xs h-8"
             />
           </div>
         </form>
       </div>
-
       <Table>
         <TableHeader>
-          <TableRow className="bg-muted/40">
-            <TableHead className="w-[120px] font-semibold">Mã vật tư</TableHead>
-            <TableHead className="font-semibold">
-              Tên vật tư / Quy cách
-            </TableHead>
-            <TableHead className="w-[100px] text-center font-semibold">
-              Đơn vị tính
-            </TableHead>
-            <TableHead className="w-[160px] text-right font-semibold">
-              Đơn giá chuẩn (VNĐ)
-            </TableHead>
-            <TableHead className="w-[130px] text-center font-semibold">
-              Trạng thái
-            </TableHead>
+          <TableRow className="bg-muted/40 text-xs">
+            <TableHead className="w-28">Mã số</TableHead>
+            <TableHead>Tên vật tư / Quy cách</TableHead>
+            <TableHead className="w-20 text-center">ĐVT</TableHead>
+            <TableHead className="w-36 text-right">Đơn giá chuẩn</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {products.length === 0 ? (
             <TableRow>
               <TableCell
-                colSpan={5}
-                className="h-32 text-center text-xs text-muted-foreground"
+                colSpan={4}
+                className="h-24 text-center text-xs text-muted-foreground"
               >
-                Không tìm thấy vật tư / hàng hóa nào phù hợp.
+                Không có dữ liệu.
               </TableCell>
             </TableRow>
           ) : (
-            products.map((product) => (
-              <TableRow key={product.id} className="hover:bg-muted/30">
-                <TableCell className="font-mono font-semibold text-xs text-primary">
-                  {product.code}
+            products.map((p) => (
+              <TableRow key={p.id} className="text-xs">
+                <TableCell className="font-mono font-semibold text-primary">
+                  {p.code}
                 </TableCell>
-                <TableCell className="text-xs font-medium">
-                  {product.name}
+                <TableCell className="font-medium">{p.name}</TableCell>
+                <TableCell className="text-center text-muted-foreground">
+                  {p.unit}
                 </TableCell>
-                <TableCell className="text-xs text-center">
-                  {product.unit}
-                </TableCell>
-                <TableCell className="text-xs text-right font-mono">
-                  {formatCurrencyVND(product.defaultPrice)}
-                </TableCell>
-                <TableCell className="text-center">
-                  <Badge variant="secondary" className="text-[10px]">
-                    Hoạt động
-                  </Badge>
+                <TableCell className="text-right font-mono">
+                  {formatCurrencyVND(p.defaultPrice)}
                 </TableCell>
               </TableRow>
             ))
