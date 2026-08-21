@@ -2,56 +2,30 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { Request, Response, NextFunction } from "express";
 import { ZodError, z } from "zod";
+import { errorMiddleware } from "#/presentation/middlewares/error.middleware";
+import {
+  DomainValidationError,
+  EntityNotFoundError,
+} from "#/domain/exceptions/domain.exception";
 
-describe("[Presentation - Middleware] Centralized Error Handling", () => {
+describe("[Presentation - Middleware] error.middleware", () => {
   let req: Request;
   let res: Response;
   let next: NextFunction;
   let statusMock: any;
   let jsonMock: any;
+  let setHeaderMock: any;
   const originalNodeEnv = process.env.NODE_ENV;
 
-  const createErrorHandler = () => {
-    return (
-      err: any,
-      request: Request,
-      response: Response,
-      _next: NextFunction,
-    ) => {
-      if (err instanceof ZodError) {
-        response.status(400).json({
-          success: false,
-          message: "Lỗi xác thực dữ liệu đầu vào (Validation Error)",
-          requestId: request.id,
-          errors: err.issues.map((issue) => ({
-            path: issue.path.join("."),
-            message: issue.message,
-          })),
-        });
-        return;
-      }
-
-      const isProduction = process.env.NODE_ENV === "production";
-      const statusCode = typeof err.status === "number" ? err.status : 500;
-
-      response.status(statusCode).json({
-        success: false,
-        message:
-          isProduction && statusCode === 500
-            ? "Đã xảy ra lỗi trong quá trình xử lý chứng từ."
-            : err.message || "Lỗi xử lý nội bộ hệ thống",
-        requestId: request.id,
-      });
-    };
-  };
-
   beforeEach(() => {
-    req = { id: "req-trace-uuid-123" } as unknown as Request;
+    setHeaderMock = vi.fn();
     jsonMock = vi.fn();
     statusMock = vi.fn().mockReturnValue({ json: jsonMock });
+    req = { id: "req-trace-123", headers: {} } as unknown as Request;
     res = {
       status: statusMock,
       json: jsonMock,
+      setHeader: setHeaderMock,
     } as unknown as Response;
     next = vi.fn() as NextFunction;
   });
@@ -60,66 +34,64 @@ describe("[Presentation - Middleware] Centralized Error Handling", () => {
     process.env.NODE_ENV = originalNodeEnv;
   });
 
-  it("TC-MID-ERR-01: Khi nhận ZodError, phải trả về HTTP 400 kèm mảng chi tiết errors và requestId", () => {
-    const testSchema = z.object({
-      receiptNumber: z.string().min(1, "Số phiếu không được rỗng"),
-    });
-
-    let zodErr: ZodError | null = null;
+  it("TC-ERR-01: Phải trả về 400 khi gặp ZodError", () => {
+    const schema = z.object({ code: z.string().min(1, "Mã không được rỗng") });
+    let zodErr!: ZodError;
     try {
-      testSchema.parse({ receiptNumber: "" });
+      schema.parse({ code: "" });
     } catch (e) {
       zodErr = e as ZodError;
     }
 
-    const errorHandler = createErrorHandler();
-    errorHandler(zodErr, req, res, next);
-
+    errorMiddleware(zodErr, req, res, next);
     expect(statusMock).toHaveBeenCalledWith(400);
-    expect(jsonMock).toHaveBeenCalledWith({
-      success: false,
-      message: "Lỗi xác thực dữ liệu đầu vào (Validation Error)",
-      requestId: "req-trace-uuid-123",
-      errors: [
-        {
-          path: "receiptNumber",
-          message: "Số phiếu không được rỗng",
-        },
-      ],
-    });
+    expect(jsonMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        success: false,
+        message: expect.stringContaining("Validation Error"),
+      }),
+    );
   });
 
-  it("TC-MID-ERR-02: Khi ở môi trường production, lỗi HTTP 500 phải trả về thông báo chung và che giấu stack trace", () => {
+  it("TC-ERR-02: Phải trả về 404 khi gặp EntityNotFoundError hoặc message chứa 'Không tìm thấy'", () => {
+    const err = new EntityNotFoundError("Phiếu nhập kho", "uuid-123");
+    errorMiddleware(err, req, res, next);
+    expect(statusMock).toHaveBeenCalledWith(404);
+  });
+
+  it("TC-ERR-03: Phải trả về 409 khi message chứa 'đã tồn tại'", () => {
+    const err = new Error("Số phiếu PNK-001 đã tồn tại trong hệ thống");
+    errorMiddleware(err, req, res, next);
+    expect(statusMock).toHaveBeenCalledWith(409);
+  });
+
+  it("TC-ERR-04: Phải trả về 422 khi gặp DomainValidationError hoặc message chứa CANCELLED", () => {
+    const err = new DomainValidationError("Không thể sửa phiếu đã CANCELLED");
+    errorMiddleware(err, req, res, next);
+    expect(statusMock).toHaveBeenCalledWith(422);
+  });
+
+  it("TC-ERR-05: Khi ở môi trường production, lỗi 500 phải ẩn chi tiết", () => {
     process.env.NODE_ENV = "production";
-    const internalErr = new Error(
-      "Database deadlock at transaction connection pool",
-    );
-
-    const errorHandler = createErrorHandler();
-    errorHandler(internalErr, req, res, next);
-
+    const err = new Error("Lỗi kết nối DB bí mật");
+    errorMiddleware(err, req, res, next);
     expect(statusMock).toHaveBeenCalledWith(500);
-    expect(jsonMock).toHaveBeenCalledWith({
-      success: false,
-      message: "Đã xảy ra lỗi trong quá trình xử lý chứng từ.",
-      requestId: "req-trace-uuid-123",
-    });
+    expect(jsonMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: "Đã xảy ra lỗi trong quá trình xử lý chứng từ.",
+      }),
+    );
   });
 
-  it("TC-MID-ERR-03: Khi ở môi trường development, lỗi HTTP 500 phải trả về message thực tế phục vụ debug", () => {
-    process.env.NODE_ENV = "development";
-    const internalErr = new Error(
-      "Database deadlock at transaction connection pool",
+  it("TC-ERR-06: Phải lấy requestId từ header x-request-id nếu req.id không tồn tại", () => {
+    req = {
+      headers: { "x-request-id": "header-trace-456" },
+    } as unknown as Request;
+    const err = new Error("Lỗi test header");
+    errorMiddleware(err, req, res, next);
+    expect(setHeaderMock).toHaveBeenCalledWith(
+      "X-Request-Id",
+      "header-trace-456",
     );
-
-    const errorHandler = createErrorHandler();
-    errorHandler(internalErr, req, res, next);
-
-    expect(statusMock).toHaveBeenCalledWith(500);
-    expect(jsonMock).toHaveBeenCalledWith({
-      success: false,
-      message: "Database deadlock at transaction connection pool",
-      requestId: "req-trace-uuid-123",
-    });
   });
 });

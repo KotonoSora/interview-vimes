@@ -137,4 +137,49 @@ describe("[Application - Use Case] CreateGoodsReceiptUseCase", () => {
     );
     expect(mockAuditService.logEvent).not.toHaveBeenCalled();
   });
+
+  it("TC-UC-CREATE-BRANCH: Phải ghi audit log khi có auditService và requestId", async () => {
+    const mockAudit = { logEvent: vi.fn().mockResolvedValue({}) };
+    const mockRepo = {
+      findByReceiptNumber: vi.fn().mockResolvedValue(null),
+      saveWithTransaction: vi.fn().mockResolvedValue({
+        id: "new-id",
+        receiptNumber: "PNK-001",
+        calculateTotalAmount: () => ({ value: 150000 }),
+      }),
+    };
+
+    const useCaseWithAudit = new CreateGoodsReceiptUseCase(
+      mockRepo as any,
+      mockAudit as any,
+    );
+    const dto: any = {
+      receiptNumber: "PNK-001",
+      receiptDate: new Date(),
+      organizationId: "org-1",
+      warehouseId: "wh-1",
+      receiptType: "PURCHASE",
+      delivererName: "Nguyễn Văn A",
+      status: "CONFIRMED",
+      items: [
+        {
+          productId: "prod-1",
+          productNameSnapshot: "Vật tư",
+          unitSnapshot: "Cái",
+          docQty: 10,
+          actualQty: 10,
+          unitPrice: 15000,
+        },
+      ],
+    };
+
+    const result = await useCaseWithAudit.execute(dto, "trace-id-123");
+    expect(result.receiptId).toBe("new-id");
+    expect(mockAudit.logEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventName: "GOODS_RECEIPT_CREATED",
+        requestId: "trace-id-123",
+      }),
+    );
+  });
 });
