@@ -24,19 +24,19 @@ export class GoodsReceiptController {
   ): Promise<void> => {
     try {
       const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 10;
+      const limit = parseInt(req.query.limit as string) || 20;
       const result = await this.listUseCase.execute(page, limit);
 
       res.status(200).json({
         success: true,
         requestId: req.id,
+        data: result.data,
         pagination: {
           page: result.page,
           limit: result.limit,
           totalItems: result.totalItems,
           totalPages: result.totalPages,
         },
-        data: result.data,
       });
     } catch (error) {
       next(error);
@@ -75,7 +75,10 @@ export class GoodsReceiptController {
         success: true,
         message: "Lập phiếu nhập kho thành công (Mẫu 01 - VT)",
         requestId: req.id,
-        data: result,
+        data: {
+          receiptId: result.receiptId || result.id,
+          totalAmount: result.totalAmount,
+        },
       });
     } catch (error) {
       next(error);
@@ -94,9 +97,12 @@ export class GoodsReceiptController {
 
       res.status(200).json({
         success: true,
-        message: "Cập nhật phiếu nhập kho thành công",
+        message: "Cập nhật phiếu nhập kho và điều chỉnh tồn kho thành công",
         requestId: req.id,
-        data: result,
+        data: {
+          receiptId: result.receiptId || id,
+          totalAmount: result.totalAmount,
+        },
       });
     } catch (error) {
       next(error);
@@ -119,7 +125,10 @@ export class GoodsReceiptController {
             ? "Đã xóa bản ghi nháp thành công"
             : "Đã hủy chứng từ nhập kho và hoàn trả tồn kho thành công (Stock Reversal)",
         requestId: req.id,
-        data: result,
+        data: {
+          receiptId: id,
+          action: result.action,
+        },
       });
     } catch (error) {
       next(error);

@@ -75,23 +75,45 @@ describe("[Application - Use Case] DeleteGoodsReceiptUseCase", () => {
     });
   });
 
-  it("TC-UC-DELETE-02: Phải thực thi Hủy chứng từ & Hoàn kho (Stock Reversal) khi phiếu ở trạng thái CONFIRMED", () => {
-    const confirmedReceipt = createExistingReceipt("CONFIRMED");
+  it("TC-UC-DELETE-02: Phải thực thi Hủy chứng từ & Hoàn kho (Stock Reversal) khi phiếu ở trạng thái CONFIRMED", async () => {
+    const confirmedReceipt = new GoodsReceipt({
+      id: "receipt-uuid-1",
+      receiptNumber: "PNK-2026-0001",
+      receiptDate: new Date("2026-08-18"),
+      organizationId: "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+      warehouseId: "c9a646d3-9c61-4cd7-bf5b-9b4dc257850a",
+      receiptType: "PURCHASE",
+      delivererName: "Nguyễn Văn A",
+      status: "CONFIRMED",
+      items: [
+        new ReceiptItem({
+          lineNo: 1,
+          productId: "e7d2b8a0-1234-4567-89ab-cdef01234567",
+          productNameSnapshot: "Thép cuộn Phi 6",
+          unitSnapshot: "Kg",
+          docQty: 100,
+          actualQty: 98.5,
+          unitPrice: 15000,
+        }),
+      ],
+    });
+
     vi.mocked(mockReceiptRepo.findById).mockResolvedValueOnce(confirmedReceipt);
 
-    return useCase.execute("receipt-uuid-1", "trace-id-2").then((result) => {
-      expect(mockReceiptRepo.deleteById).not.toHaveBeenCalled();
-      expect(mockReceiptRepo.updateWithTransaction).toHaveBeenCalledOnce();
-      expect(mockAuditService.logEvent).toHaveBeenCalledWith(
-        expect.objectContaining({
-          eventName: "GOODS_RECEIPT_CANCELLED_AND_REVERSED",
-          receiptId: "receipt-uuid-1",
-        }),
-      );
-      expect(result).toEqual({
+    const result = await useCase.execute("receipt-uuid-1", "trace-id-2");
+
+    expect(mockReceiptRepo.deleteById).not.toHaveBeenCalled();
+    expect(mockReceiptRepo.updateWithTransaction).toHaveBeenCalledOnce();
+    expect(mockAuditService.logEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventName: "GOODS_RECEIPT_CANCELLED_AND_REVERSED",
         receiptId: "receipt-uuid-1",
-        action: "CANCELLED_AND_REVERSED",
-      });
+        requestId: "trace-id-2",
+      }),
+    );
+    expect(result).toEqual({
+      receiptId: "receipt-uuid-1",
+      action: "CANCELLED_AND_REVERSED",
     });
   });
 

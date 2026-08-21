@@ -7,7 +7,7 @@ export const GoodsReceiptItemInputSchema = z
       .number()
       .int()
       .positive("Số thứ tự dòng phải là số nguyên dương")
-      .default(1),
+      .optional(),
     productId: z.string().uuid("ID vật tư/hàng hóa không đúng định dạng UUID"),
     productNameSnapshot: z
       .string()
@@ -33,7 +33,8 @@ export const CreateGoodsReceiptSchema = z
     receiptDate: z.coerce.date({ message: "Ngày lập phiếu không hợp lệ" }),
     actualReceivedDate: z.coerce
       .date({ message: "Ngày nhập kho không hợp lệ" })
-      .optional(),
+      .optional()
+      .nullable(),
     receiptType: z.enum([
       "PURCHASE",
       "INTERNAL_PRODUCTION",

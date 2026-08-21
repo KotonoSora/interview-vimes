@@ -27,6 +27,7 @@ export interface GoodsReceiptProps {
   docOrigin?: string;
   debitAccount?: string;
   creditAccount?: string;
+  totalAmountWords?: string;
   attachedDocCount?: string | number;
   creatorName?: string;
   storekeeperName?: string;
@@ -50,6 +51,7 @@ export class GoodsReceipt {
   private readonly _docOrigin?: string;
   private readonly _debitAccount?: string;
   private readonly _creditAccount?: string;
+  private readonly _totalAmountWords?: string;
   private readonly _attachedDocCount?: string | number;
   private readonly _creatorName?: string;
   private readonly _storekeeperName?: string;
@@ -74,6 +76,7 @@ export class GoodsReceipt {
     this._docOrigin = props.docOrigin;
     this._debitAccount = props.debitAccount;
     this._creditAccount = props.creditAccount;
+    this._totalAmountWords = props.totalAmountWords;
     this._attachedDocCount = props.attachedDocCount;
     this._creatorName = props.creatorName;
     this._storekeeperName = props.storekeeperName;
@@ -164,6 +167,10 @@ export class GoodsReceipt {
     return this._creditAccount;
   }
 
+  public get totalAmountWords(): string | undefined {
+    return this._totalAmountWords;
+  }
+
   public get attachedDocCount(): string | number | undefined {
     return this._attachedDocCount;
   }
@@ -227,6 +234,7 @@ export class GoodsReceipt {
       docOrigin: this._docOrigin,
       debitAccount: this._debitAccount,
       creditAccount: this._creditAccount,
+      totalAmountWords: this._totalAmountWords,
       attachedDocCount: this._attachedDocCount,
       creatorName: this._creatorName,
       storekeeperName: this._storekeeperName,

@@ -4,6 +4,7 @@ import { GoodsReceipt } from "#/domain/entities/goods-receipt.entity";
 import { ReceiptItem } from "#/domain/entities/receipt-item.entity";
 import { Money } from "#/domain/value-objects/money.vo";
 import { Quantity } from "#/domain/value-objects/quantity.vo";
+import { DomainValidationError } from "#/domain/exceptions/domain.exception";
 
 export interface DeleteGoodsReceiptResult {
   action: "HARD_DELETED" | "CANCELLED_AND_REVERSED";
@@ -22,13 +23,18 @@ export class DeleteGoodsReceiptUseCase {
   ): Promise<DeleteGoodsReceiptResult> {
     const existing = await this.receiptRepo.findById(id);
     if (!existing) {
-      throw new Error("Không tìm thấy phiếu nhập kho với ID đã cung cấp.");
+      throw new DomainValidationError(
+        "Không tìm thấy phiếu nhập kho với ID đã cung cấp.",
+      );
     }
 
     if (existing.status === "CANCELLED") {
-      throw new Error("Phiếu này đã ở trạng thái hủy trước đó.");
+      throw new DomainValidationError(
+        "Phiếu này đã ở trạng thái hủy trước đó.",
+      );
     }
 
+    // 1. Trường hợp xóa cứng phiếu nháp (DRAFT)
     if (existing.status === "DRAFT") {
       await this.receiptRepo.deleteById(id);
       if (
@@ -44,10 +50,15 @@ export class DeleteGoodsReceiptUseCase {
       return { action: "HARD_DELETED", receiptId: id };
     }
 
-    // Xử lý khi existing là instance GoodsReceipt hoặc plain object từ Database query
-    if (typeof existing.cancel === "function") {
+    // 2. Trường hợp hủy chứng từ & hoàn kho (CONFIRMED -> CANCELLED)
+    let aggregate: GoodsReceipt;
+
+    if (existing instanceof GoodsReceipt) {
+      aggregate = existing;
+      aggregate.cancel();
+    } else if (typeof existing.cancel === "function") {
       existing.cancel();
-      await this.receiptRepo.updateWithTransaction(existing);
+      aggregate = existing;
     } else {
       const domainItems =
         existing.items && existing.items.length > 0
@@ -87,7 +98,7 @@ export class DeleteGoodsReceiptUseCase {
               }),
             ];
 
-      const entity = new GoodsReceipt({
+      aggregate = new GoodsReceipt({
         id: existing.id,
         receiptNumber:
           existing.receiptNumber || existing.receipt_number || "PNK-2026-001",
@@ -114,9 +125,10 @@ export class DeleteGoodsReceiptUseCase {
         items: domainItems,
       });
 
-      entity.cancel();
-      await this.receiptRepo.updateWithTransaction(entity);
+      aggregate.cancel();
     }
+
+    await this.receiptRepo.updateWithTransaction(aggregate);
 
     if (this.auditService && typeof this.auditService.logEvent === "function") {
       await this.auditService.logEvent({

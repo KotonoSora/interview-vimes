@@ -7,8 +7,12 @@ export function requestIdMiddleware(
   res: Response,
   next: NextFunction,
 ): void {
-  const requestId = (req.headers["x-request-id"] as string) || randomUUID();
-  req.id = requestId;
-  res.setHeader("X-Request-Id", requestId);
+  const incomingId = req.headers["x-request-id"] as string;
+  const traceId =
+    incomingId && incomingId.trim().length > 0 ? incomingId : randomUUID();
+
+  req.id = traceId;
+  res.setHeader("X-Request-Id", traceId);
+
   next();
 }

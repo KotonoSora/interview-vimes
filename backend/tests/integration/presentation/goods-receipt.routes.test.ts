@@ -190,7 +190,7 @@ describe("[Integration Test - TDD] Goods Receipt Routes (/api/v1/goods-receipts)
           ],
         }) // INSERT header
         .mockResolvedValueOnce({ rows: [{ id: "item-uuid-1" }] }) // INSERT item
-        .mockResolvedValueOnce({}) // UPDATE inventory
+        .mockResolvedValueOnce({}) // UPDATE inventory_balances
         .mockResolvedValueOnce({}); // COMMIT
 
       const validPayload = {
@@ -236,7 +236,10 @@ describe("[Integration Test - TDD] Goods Receipt Routes (/api/v1/goods-receipts)
 
       expect(response.status).toBe(201);
       expect(response.body.success).toBe(true);
-      expect(response.body.data.id).toBe(sampleReceiptId);
+      expect(response.body.data.receiptId || response.body.data.id).toBe(
+        sampleReceiptId,
+      );
+      expect(response.body.data.totalAmount).toBe(15000000);
       expect(mockClient.release).toHaveBeenCalledTimes(1);
     });
   });
@@ -271,24 +274,31 @@ describe("[Integration Test - TDD] Goods Receipt Routes (/api/v1/goods-receipts)
         ],
       };
 
+      // 1. Mock findById trong DeleteGoodsReceiptUseCase
       (pool.query as any).mockResolvedValueOnce({ rows: [mockReceiptDetail] });
       (pool.connect as any).mockResolvedValueOnce(mockClient);
 
+      // 2. Mock chuỗi 8 câu lệnh trong updateWithTransaction
       mockClient.query
-        .mockResolvedValueOnce({}) // BEGIN
+        .mockResolvedValueOnce({}) // 1. BEGIN
         .mockResolvedValueOnce({
           rows: [
             { id: sampleReceiptId, status: "CONFIRMED", warehouse_id: "wh-1" },
           ],
-        }) // SELECT for update
+        }) // 2. SELECT for update (khóa bản ghi)
         .mockResolvedValueOnce({
-          rows: [{ product_id: "prod-1", actual_qty: 100 }],
-        }) // SELECT items to reverse
-        .mockResolvedValueOnce({}) // UPDATE inventory reversal
-        .mockResolvedValueOnce({}) // UPDATE goods_receipts status to CANCELLED
-        .mockResolvedValueOnce({}) // DELETE old items
-        .mockResolvedValueOnce({ rows: [{ id: "item-1" }] }) // INSERT new items snapshot
-        .mockResolvedValueOnce({}); // COMMIT
+          rows: [
+            {
+              product_id: "7a3deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6f",
+              actual_qty: 100,
+            },
+          ],
+        }) // 3. SELECT old items để hoàn kho
+        .mockResolvedValueOnce({}) // 4. UPDATE inventory_balances (trừ tồn kho)
+        .mockResolvedValueOnce({}) // 5. UPDATE goods_receipts (cập nhật header CANCELLED)
+        .mockResolvedValueOnce({}) // 6. DELETE FROM goods_receipt_items
+        .mockResolvedValueOnce({ rows: [{ id: "item-1" }] }) // 7. INSERT INTO goods_receipt_items
+        .mockResolvedValueOnce({}); // 8. COMMIT
 
       const response = await request(app)
         .delete(`/api/v1/goods-receipts/${sampleReceiptId}`)
