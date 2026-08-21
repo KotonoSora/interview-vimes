@@ -14,6 +14,8 @@ import { Toaster } from "~/components/ui/toast";
 import stylesheet from "./app.css?url";
 import printStylesheet from "./print.css?url";
 
+import rdpStylesheet from "react-day-picker/style.css?url";
+
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
   {
@@ -27,6 +29,7 @@ export const links: Route.LinksFunction = () => [
   },
   { rel: "stylesheet", href: stylesheet },
   { rel: "stylesheet", href: printStylesheet },
+  { rel: "stylesheet", href: rdpStylesheet },
 ];
 
 export function Layout({ children }: { children: React.ReactNode }) {

@@ -1,4 +1,4 @@
-
+"use client"
 
 import * as React from "react"
 import { Drawer as DrawerPrimitive } from "@base-ui/react/drawer"
