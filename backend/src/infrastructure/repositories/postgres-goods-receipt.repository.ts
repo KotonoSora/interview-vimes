@@ -30,9 +30,9 @@ export class PostgresGoodsReceiptRepository implements IGoodsReceiptRepository {
           receipt_number, organization_id, warehouse_id, receipt_date,
           actual_received_date, receipt_type, deliverer_name, doc_reference,
           doc_date, doc_origin, debit_account, credit_account, description,
-          total_amount, attached_doc_count, creator_name,
+          total_amount, total_amount_words, attached_doc_count, creator_name,
           storekeeper_name, chief_accountant_name, status
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
         RETURNING id, created_at, updated_at;
       `;
 
@@ -51,6 +51,7 @@ export class PostgresGoodsReceiptRepository implements IGoodsReceiptRepository {
         entity.creditAccount ?? null,
         entity.description ?? null,
         totalAmount,
+        entity.totalAmountWords ?? null,
         entity.attachedDocCount ? String(entity.attachedDocCount) : null,
         entity.creatorName ?? null,
         entity.storekeeperName ?? null,
@@ -107,10 +108,10 @@ export class PostgresGoodsReceiptRepository implements IGoodsReceiptRepository {
 
         if (entity.status === "CONFIRMED") {
           const updateStockSql = `
-            INSERT INTO inventory (warehouse_id, product_id, current_stock, updated_at)
+            INSERT INTO inventory_balances (warehouse_id, product_id, current_stock, updated_at)
             VALUES ($1, $2, $3, NOW())
             ON CONFLICT (warehouse_id, product_id)
-            DO UPDATE SET current_stock = inventory.current_stock + EXCLUDED.current_stock, updated_at = NOW();
+            DO UPDATE SET current_stock = inventory_balances.current_stock + EXCLUDED.current_stock, updated_at = NOW();
           `;
           await client.query(updateStockSql, [
             entity.warehouseId,
@@ -123,25 +124,8 @@ export class PostgresGoodsReceiptRepository implements IGoodsReceiptRepository {
       await client.query("COMMIT");
 
       return new GoodsReceipt({
+        ...entity.toProps(),
         id: insertedRow.id,
-        receiptNumber: entity.receiptNumber,
-        receiptDate: entity.receiptDate,
-        actualReceivedDate: entity.actualReceivedDate,
-        organizationId: entity.organizationId,
-        warehouseId: entity.warehouseId,
-        receiptType: entity.receiptType,
-        delivererName: entity.delivererName,
-        docReference: entity.docReference,
-        docDate: entity.docDate,
-        docOrigin: entity.docOrigin,
-        debitAccount: entity.debitAccount,
-        creditAccount: entity.creditAccount,
-        description: entity.description,
-        attachedDocCount: entity.attachedDocCount,
-        creatorName: entity.creatorName,
-        storekeeperName: entity.storekeeperName,
-        chiefAccountantName: entity.chiefAccountantName,
-        status: entity.status,
         items: itemsWithIds,
       });
     } catch (error) {
@@ -187,7 +171,7 @@ export class PostgresGoodsReceiptRepository implements IGoodsReceiptRepository {
         );
         for (const oldItem of oldItemsRes.rows) {
           await client.query(
-            `UPDATE inventory 
+            `UPDATE inventory_balances 
              SET current_stock = current_stock - $1, updated_at = NOW() 
              WHERE warehouse_id = $2 AND product_id = $3`,
             [oldItem.actual_qty, existing.warehouse_id, oldItem.product_id],
@@ -201,10 +185,10 @@ export class PostgresGoodsReceiptRepository implements IGoodsReceiptRepository {
           receipt_number = $1, organization_id = $2, warehouse_id = $3, receipt_date = $4,
           actual_received_date = $5, receipt_type = $6, deliverer_name = $7, doc_reference = $8,
           doc_date = $9, doc_origin = $10, debit_account = $11, credit_account = $12,
-          description = $13, total_amount = $14, attached_doc_count = $15,
-          creator_name = $16, storekeeper_name = $17, chief_accountant_name = $18,
-          status = $19, updated_at = NOW()
-        WHERE id = $20;
+          description = $13, total_amount = $14, total_amount_words = $15, attached_doc_count = $16,
+          creator_name = $17, storekeeper_name = $18, chief_accountant_name = $19,
+          status = $20, updated_at = NOW()
+        WHERE id = $21;
       `;
 
       await client.query(updateHeaderSql, [
@@ -222,6 +206,7 @@ export class PostgresGoodsReceiptRepository implements IGoodsReceiptRepository {
         entity.creditAccount ?? null,
         entity.description ?? null,
         totalAmount,
+        entity.totalAmountWords ?? null,
         entity.attachedDocCount ? String(entity.attachedDocCount) : null,
         entity.creatorName ?? null,
         entity.storekeeperName ?? null,
@@ -279,10 +264,10 @@ export class PostgresGoodsReceiptRepository implements IGoodsReceiptRepository {
 
         if (entity.status === "CONFIRMED") {
           const updateStockSql = `
-            INSERT INTO inventory (warehouse_id, product_id, current_stock, updated_at)
+            INSERT INTO inventory_balances (warehouse_id, product_id, current_stock, updated_at)
             VALUES ($1, $2, $3, NOW())
             ON CONFLICT (warehouse_id, product_id)
-            DO UPDATE SET current_stock = inventory.current_stock + EXCLUDED.current_stock, updated_at = NOW();
+            DO UPDATE SET current_stock = inventory_balances.current_stock + EXCLUDED.current_stock, updated_at = NOW();
           `;
           await client.query(updateStockSql, [
             entity.warehouseId,
@@ -293,7 +278,10 @@ export class PostgresGoodsReceiptRepository implements IGoodsReceiptRepository {
       }
 
       await client.query("COMMIT");
-      return entity;
+      return new GoodsReceipt({
+        ...entity.toProps(),
+        items: itemsWithIds,
+      });
     } catch (error) {
       await client.query("ROLLBACK");
       throw error;
@@ -329,24 +317,74 @@ export class PostgresGoodsReceiptRepository implements IGoodsReceiptRepository {
     await this.deleteOrCancel(id);
   }
 
+  // src/infrastructure/repositories/postgres-goods-receipt.repository.ts
   async findById(id: string): Promise<any | null> {
     const sql = `
       SELECT 
-        gr.id, gr.receipt_number, gr.receipt_date, gr.actual_received_date, gr.receipt_type,
-        gr.description, gr.deliverer_name, gr.doc_reference, gr.doc_date, gr.doc_origin,
-        gr.debit_account, gr.credit_account, gr.total_amount, gr.attached_doc_count,
-        gr.creator_name, gr.storekeeper_name, gr.chief_accountant_name, gr.status,
-        gr.created_at, gr.updated_at,
+        gr.id, 
+        gr.receipt_number AS "receiptNumber", 
+        gr.receipt_number,
+        gr.organization_id AS "organizationId",
+        gr.organization_id,
+        gr.warehouse_id AS "warehouseId",
+        gr.warehouse_id,
+        to_char(gr.receipt_date, 'YYYY-MM-DD') AS "receiptDate", 
+        gr.receipt_date,
+        to_char(gr.actual_received_date, 'YYYY-MM-DD') AS "actualReceivedDate", 
+        gr.actual_received_date,
+        gr.receipt_type AS "receiptType",
+        gr.receipt_type,
+        gr.description, 
+        gr.deliverer_name AS "delivererName", 
+        gr.deliverer_name,
+        gr.doc_reference AS "docReference", 
+        gr.doc_reference,
+        to_char(gr.doc_date, 'YYYY-MM-DD') AS "docDate", 
+        gr.doc_date,
+        gr.doc_origin AS "docOrigin",
+        gr.doc_origin,
+        gr.debit_account AS "debitAccount", 
+        gr.debit_account,
+        gr.credit_account AS "creditAccount", 
+        gr.credit_account,
+        gr.total_amount::float AS "totalAmount", 
+        gr.total_amount,
+        gr.total_amount_words AS "totalAmountWords",
+        gr.total_amount_words,
+        gr.attached_doc_count AS "attachedDocCount",
+        gr.attached_doc_count,
+        gr.creator_name AS "creatorName",
+        gr.creator_name,
+        gr.storekeeper_name AS "storekeeperName",
+        gr.storekeeper_name,
+        gr.chief_accountant_name AS "chiefAccountantName",
+        gr.chief_accountant_name,
+        json_build_object(
+          'creatorName', gr.creator_name,
+          'storekeeperName', gr.storekeeper_name,
+          'chiefAccountantName', gr.chief_accountant_name
+        ) AS signatures,
+        gr.status,
+        gr.created_at,
+        gr.updated_at,
         json_build_object('id', org.id, 'name', org.name, 'department', org.department) AS organization,
         json_build_object('id', wh.id, 'name', wh.name, 'location', wh.location) AS warehouse,
         COALESCE(
           json_agg(
             json_build_object(
-              'id', gri.id, 'lineNo', gri.line_no, 'productId', gri.product_id,
-              'productCode', p.code, 'productName', gri.product_name_snapshot,
-              'unit', gri.unit_snapshot, 'docQty', gri.doc_qty, 'actualQty', gri.actual_qty,
-              'unitPrice', gri.unit_price, 'amount', gri.amount,
-              'debitAccount', gri.debit_account, 'creditAccount', gri.credit_account, 'note', gri.note
+              'id', gri.id, 
+              'lineNo', gri.line_no, 
+              'productId', gri.product_id,
+              'productCode', p.code, 
+              'productName', gri.product_name_snapshot,
+              'unit', gri.unit_snapshot, 
+              'docQty', gri.doc_qty::float, 
+              'actualQty', gri.actual_qty::float,
+              'unitPrice', gri.unit_price::float, 
+              'amount', gri.amount::float,
+              'debitAccount', gri.debit_account, 
+              'creditAccount', gri.credit_account, 
+              'note', gri.note
             ) ORDER BY gri.line_no ASC
           ) FILTER (WHERE gri.id IS NOT NULL), '[]'::json
         ) AS items
@@ -398,7 +436,7 @@ export class PostgresGoodsReceiptRepository implements IGoodsReceiptRepository {
 
   async deleteOrCancel(
     id: string,
-  ): Promise<{ action: "HARD_DELETED" | "CANCELLED_REVERSED" }> {
+  ): Promise<{ action: "HARD_DELETED" | "CANCELLED_AND_REVERSED" }> {
     const client = await pool.connect();
     try {
       await client.query("BEGIN");
@@ -427,7 +465,7 @@ export class PostgresGoodsReceiptRepository implements IGoodsReceiptRepository {
       );
       for (const item of itemsRes.rows) {
         await client.query(
-          `UPDATE inventory 
+          `UPDATE inventory_balances 
            SET current_stock = current_stock - $1, updated_at = NOW() 
            WHERE warehouse_id = $2 AND product_id = $3`,
           [item.actual_qty, receipt.warehouse_id, item.product_id],
@@ -439,7 +477,7 @@ export class PostgresGoodsReceiptRepository implements IGoodsReceiptRepository {
         [id],
       );
       await client.query("COMMIT");
-      return { action: "CANCELLED_REVERSED" };
+      return { action: "CANCELLED_AND_REVERSED" };
     } catch (error) {
       await client.query("ROLLBACK");
       throw error;

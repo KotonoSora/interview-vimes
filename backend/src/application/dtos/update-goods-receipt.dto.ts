@@ -4,7 +4,7 @@ import { GoodsReceiptItemInputSchema } from "#/application/dtos/create-goods-rec
 
 export const UpdateGoodsReceiptSchema = z.object({
   receiptDate: z.coerce.date().optional(),
-  actualReceivedDate: z.coerce.date().optional(),
+  actualReceivedDate: z.coerce.date().optional().nullable(),
   receiptType: z
     .enum([
       "PURCHASE",
@@ -21,6 +21,7 @@ export const UpdateGoodsReceiptSchema = z.object({
   debitAccount: z.string().optional().nullable(),
   creditAccount: z.string().optional().nullable(),
   description: z.string().optional().nullable(),
+  totalAmountWords: z.string().optional().nullable(),
   attachedDocCount: z.union([z.string(), z.number()]).optional().nullable(),
   creatorName: z.string().optional().nullable(),
   storekeeperName: z.string().optional().nullable(),

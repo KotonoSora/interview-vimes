@@ -4,6 +4,11 @@ import { GoodsReceipt } from "#/domain/entities/goods-receipt.entity";
 export interface PaginationQuery {
   page: number;
   limit: number;
+  search?: string;
+  fromDate?: string;
+  toDate?: string;
+  warehouseId?: string;
+  status?: string;
 }
 
 export interface PaginatedResult<T> {
@@ -17,13 +22,13 @@ export interface PaginatedResult<T> {
 export interface IGoodsReceiptRepository {
   save(entity: GoodsReceipt): Promise<{ id: string; receiptNumber: string }>;
   saveWithTransaction(entity: GoodsReceipt): Promise<GoodsReceipt>;
-  findById(id: string): Promise<GoodsReceipt | any | null>;
+  findById(id: string): Promise<any | null>;
   findByReceiptNumber(receiptNumber: string): Promise<GoodsReceipt | null>;
-  findPaginated(pagination: PaginationQuery): Promise<PaginatedResult<any>>;
+  findPaginated(query: PaginationQuery): Promise<PaginatedResult<any>>;
   update(id: string, entity: GoodsReceipt): Promise<void>;
   updateWithTransaction(entity: GoodsReceipt): Promise<GoodsReceipt>;
   deleteById(id: string): Promise<void>;
   deleteOrCancel(
     id: string,
-  ): Promise<{ action: "HARD_DELETED" | "CANCELLED_REVERSED" }>;
+  ): Promise<{ action: "HARD_DELETED" | "CANCELLED_AND_REVERSED" }>;
 }

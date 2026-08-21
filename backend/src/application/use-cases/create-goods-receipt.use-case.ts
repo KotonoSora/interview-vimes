@@ -33,21 +33,20 @@ export class CreateGoodsReceiptUseCase {
       );
     }
 
-    const domainItems = dto.items.map(
-      (item, idx) =>
-        new ReceiptItem({
-          lineNo: idx + 1,
-          productId: item.productId,
-          productNameSnapshot: item.productNameSnapshot,
-          unitSnapshot: item.unitSnapshot,
-          docQty: new Quantity(item.docQty),
-          actualQty: new Quantity(item.actualQty),
-          unitPrice: new Money(item.unitPrice),
-          debitAccount: item.debitAccount ?? undefined,
-          creditAccount: item.creditAccount ?? undefined,
-          note: item.note ?? undefined,
-        }),
-    );
+    const domainItems = dto.items.map((item, index) => {
+      return new ReceiptItem({
+        lineNo: item.lineNo ?? index + 1,
+        productId: item.productId,
+        productNameSnapshot: item.productNameSnapshot,
+        unitSnapshot: item.unitSnapshot,
+        docQty: new Quantity(item.docQty),
+        actualQty: new Quantity(item.actualQty),
+        unitPrice: new Money(item.unitPrice),
+        debitAccount: item.debitAccount ?? undefined,
+        creditAccount: item.creditAccount ?? undefined,
+        note: item.note ?? undefined,
+      });
+    });
 
     const aggregate = GoodsReceipt.create({
       receiptNumber: dto.receiptNumber,
