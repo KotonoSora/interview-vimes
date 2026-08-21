@@ -9,8 +9,6 @@ tags:
 
 Hệ thống được thiết kế theo mô hình kiến trúc phân lớp **Domain-Driven Design (DDD)** kết hợp quy trình phát triển **Test-Driven Development (TDD)** và chiến lược bảo mật **Defense-in-Depth**. Kiến trúc đáp ứng đầy đủ chuẩn mực kế toán Việt Nam (**Mẫu 01 - VT theo Thông tư 200/2014/TT-BTC** và **Điều 24, Điều 25 Luật Kế toán 2015**), đồng thời tích hợp toàn bộ các tiêu chuẩn vận hành môi trường Production hiện đại: Observability, Container Health Checks, Alerting Rules, Audit Analytics và Bảo mật/Anti-DDoS với phiên bản thư viện mới nhất và an toàn nhất.
 
-  
-
 ## 1. Cấu Trúc Dự Án (Monorepo Workspace)
 
 Plaintext
@@ -93,8 +91,6 @@ vimes-inventory/
 
 **File: `backend/src/domain/value-objects/money.vo.ts`**
 
-  
-
 TypeScript
 
 ```TypeScript
@@ -125,8 +121,6 @@ export class Money {
 
 **File: `backend/src/domain/value-objects/quantity.vo.ts`**
 
-  
-
 TypeScript
 
 ```TypeScript
@@ -150,8 +144,6 @@ export class Quantity {
 ### Entity & Aggregate Root (Domain Layer)
 
 **File: `backend/src/domain/entities/receipt-item.entity.ts`**
-
-  
 
 TypeScript
 
@@ -211,8 +203,6 @@ export class ReceiptItem {
 ```
 
 **File: `backend/src/domain/entities/goods-receipt.entity.ts`**
-
-  
 
 TypeScript
 
@@ -350,8 +340,6 @@ export class GoodsReceipt {
 
 **File: `backend/src/application/dtos/create-goods-receipt.dto.ts`**
 
-  
-
 TypeScript
 
 ```TypeScript
@@ -402,8 +390,6 @@ export type CreateGoodsReceiptDTO = z.infer<typeof CreateGoodsReceiptSchema>;
 ```
 
 **File: `backend/src/application/use-cases/create-goods-receipt.use-case.ts`**
-
-  
 
 TypeScript
 
@@ -492,8 +478,6 @@ export class CreateGoodsReceiptUseCase {
 
 **File: `docker/nginx.conf`**
 
-  
-
 Nginx
 
 ```Nginx
@@ -550,8 +534,6 @@ http {
 
 **File: `backend/src/presentation/middlewares/security.middleware.ts`**
 
-  
-
 TypeScript
 
 ```TypeScript
@@ -602,8 +584,6 @@ export function configureSecurityMiddlewares(app: Express): void {
 
 **File: `backend/src/infrastructure/monitoring/metrics.ts`**
 
-  
-
 TypeScript
 
 ```TypeScript
@@ -648,8 +628,6 @@ export function metricsMiddleware(req: Request, res: Response, next: NextFunctio
 
 **File: `backend/src/presentation/middlewares/request-id.middleware.ts`**
 
-  
-
 TypeScript
 
 ```TypeScript
@@ -669,8 +647,6 @@ export function requestIdMiddleware(req: RequestWithId, res: Response, next: Nex
 ```
 
 **File: `backend/src/infrastructure/repositories/postgres-goods-receipt.repository.ts`**
-
-  
 
 TypeScript
 
@@ -781,8 +757,6 @@ export class PostgresGoodsReceiptRepository implements IGoodsReceiptRepository {
 
 **File: `backend/src/presentation/controllers/health.controller.ts`**
 
-  
-
 TypeScript
 
 ```TypeScript
@@ -828,8 +802,6 @@ export class HealthController {
 ```
 
 **File: `backend/src/app.ts`**
-
-  
 
 TypeScript
 
@@ -905,8 +877,6 @@ export default app;
 
 **File: `backend/tests/unit/goods-receipt.domain.test.ts`**
 
-  
-
 TypeScript
 
 ```TypeScript
@@ -973,11 +943,7 @@ describe("[TDD] GoodsReceipt Domain Unit Tests (Mẫu 01 - VT)", () => {
 
 Toàn bộ phiên bản dependencies và devDependencies được thiết lập chính xác theo các phiên bản mới nhất, tương thích ổn định và tối ưu an ninh bảo mật cao nhất:
 
-  
-
 **File: `backend/package.json`**
-
-  
 
 JSON
 
@@ -1027,8 +993,6 @@ JSON
 
 **File: `backend/tsconfig.json`**
 
-  
-
 JSON
 
 ```JSON
@@ -1056,8 +1020,6 @@ JSON
 ## 6. Cấu Hình Docker & Triển Khai Hạ Tầng An Toàn
 
 **File: `docker/Dockerfile.backend`**
-
-  
 
 Dockerfile
 
@@ -1090,8 +1052,6 @@ CMD ["node", "dist/server.js"]
 ```
 
 **File: `docker/docker-compose.yml`**
-
-  
 
 YAML
 
@@ -1171,8 +1131,6 @@ volumes:
 
 **1. Khởi chạy toàn bộ cụm hạ tầng Production (1-Click Run):**
 
-  
-
 Bash
 
 ```Bash
@@ -1180,8 +1138,6 @@ docker-compose -f docker/docker-compose.yml up --build -d
 ```
 
 **2. Kiểm tra trạng thái sức khỏe các dịch vụ (Probes):**
-
-  
 
 Bash
 
@@ -1198,8 +1154,6 @@ curl -i http://localhost/metrics
 
 **3. Chạy bộ kiểm thử tự động TDD & xuất báo cáo Code Coverage:**
 
-  
-
 Bash
 
 ```Bash
@@ -1213,27 +1167,15 @@ npm run test:coverage
 
 Đội ngũ phát triển Frontend (`frontend/`) sẽ tích hợp với Backend thông qua tài liệu giao tiếp API chuẩn:
 
-  
-
 - **HTTP Method & Path:** `POST /api/v1/goods-receipts`
-    
-      
-    
+
 - **Headers Bắt Buộc:**
-    
-      
-    - `Content-Type: application/json`
-        
-          
-        
-    - `X-Request-Id: <UUID_CLIENT_TRACE>` _(Tùy chọn, hệ thống tự sinh nếu thiếu)_
-        
-          
-        
+
+  - `Content-Type: application/json`
+
+  - `X-Request-Id: <UUID_CLIENT_TRACE>` _(Tùy chọn, hệ thống tự sinh nếu thiếu)_
+
 - **Payload Mẫu Chuẩn Kế Toán (TT 200 & Luật Kế Toán 2015):**
-    
-      
-    
 
 JSON
 
@@ -1275,7 +1217,6 @@ JSON
 ```
 
 - **HTTP Response Thành Công (`201 Created`):**
-    
 
 JSON
 

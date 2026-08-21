@@ -2,22 +2,13 @@
 
 Dưới đây là toàn văn nội dung tệp đặc tả chuẩn hóa **OpenAPI 3.1.0** (`openapi.yaml`) cho hệ thống Quản lý Phiếu Nhập Kho (Mẫu 01 - VT), được tích hợp đầy đủ:
 
-  
-
 - **Full CRUD Nghiệp Vụ:** Tạo mới, Xem danh sách phân trang, Xem chi tiết gom mảng JSON (`json_agg`), Cập nhật điều chỉnh kho, Hủy chứng từ kế toán/Hoàn kho (Stock Reversal).
-    
-      
-    
+
 - **Tiêu Chuẩn Vận Hành & Giám Sát (Observability):** Endpoint Liveness Probe (`/healthz`), Readiness Probe (`/ready`), Prometheus Metrics (`/metrics`).
-    
-      
-    
+
 - **Bảo Mật & Truy Vết (Security & Tracing):** Bắt buộc/Hỗ trợ `X-Request-Id` trên mọi endpoint, chuẩn hóa phản hồi Rate Limit (HTTP 429), Conflict (HTTP 409), Validation Error (HTTP 400).
-    
-      
-    
+
 - **Master Data:** Truy vấn danh mục Vật tư, Kho bãi và Đơn vị/Phòng ban.
-    
 
 YAML
 
