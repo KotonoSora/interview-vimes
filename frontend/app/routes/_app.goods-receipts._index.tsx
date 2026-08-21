@@ -114,7 +114,7 @@ export default function GoodsReceiptsIndexRoute() {
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/40 text-xs">
-                <TableHead className="w-28 font-semibold">Số phiếu</TableHead>
+                <TableHead className="w-32 font-semibold">Số phiếu</TableHead>
                 <TableHead className="w-24 font-semibold">Ngày lập</TableHead>
                 <TableHead className="w-28 font-semibold">Loại nhập</TableHead>
                 <TableHead className="font-semibold">Kho nhập</TableHead>
@@ -128,7 +128,9 @@ export default function GoodsReceiptsIndexRoute() {
                 <TableHead className="w-24 font-semibold text-center">
                   Trạng thái
                 </TableHead>
-                <TableHead className="w-20 text-center font-semibold"></TableHead>
+                <TableHead className="w-20 text-center font-semibold">
+                  Thao tác
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -138,13 +140,13 @@ export default function GoodsReceiptsIndexRoute() {
                     colSpan={9}
                     className="h-28 text-center text-xs text-muted-foreground"
                   >
-                    Không có chứng từ nào.
+                    Không có chứng từ nào được ghi nhận.
                   </TableCell>
                 </TableRow>
               ) : (
                 receipts.map((r) => (
                   <TableRow key={r.id} className="text-xs hover:bg-muted/20">
-                    <TableCell className="font-semibold text-primary font-mono">
+                    <TableCell className="font-semibold text-primary font-mono whitespace-nowrap">
                       <Link
                         to={`/goods-receipts/${r.id}`}
                         className="hover:underline"
@@ -152,31 +154,33 @@ export default function GoodsReceiptsIndexRoute() {
                         {r.receiptNumber}
                       </Link>
                     </TableCell>
-                    <TableCell className="text-muted-foreground">
+                    <TableCell className="text-muted-foreground whitespace-nowrap">
                       {r.receiptDate}
                     </TableCell>
-                    <TableCell className="text-muted-foreground">
+                    <TableCell className="text-muted-foreground whitespace-nowrap">
                       {RECEIPT_TYPE_LABELS[r.receiptType as ReceiptType] ||
                         r.receiptType ||
                         "Mua ngoài"}
                     </TableCell>
-                    <TableCell className="font-medium">
-                      {r.warehouseName || "—"}
+                    <TableCell className="font-medium whitespace-nowrap">
+                      {r.warehouseName || r.warehouse?.name || "—"}
                     </TableCell>
-                    <TableCell>{r.delivererName}</TableCell>
-                    <TableCell className="text-center font-mono text-[11px]">
-                      <span className="text-blue-600">
+                    <TableCell className="whitespace-nowrap">
+                      {r.delivererName}
+                    </TableCell>
+                    <TableCell className="text-center font-mono text-[11px] whitespace-nowrap">
+                      <span className="text-blue-600 dark:text-blue-400">
                         N:{r.debitAccount || "152"}
-                      </span>{" "}
-                      /{" "}
-                      <span className="text-amber-600">
+                      </span>
+                      {" / "}
+                      <span className="text-amber-600 dark:text-amber-400">
                         C:{r.creditAccount || "331"}
                       </span>
                     </TableCell>
-                    <TableCell className="text-right font-mono font-semibold">
+                    <TableCell className="text-right font-mono font-semibold whitespace-nowrap">
                       {formatCurrencyVND(r.totalAmount || 0)}
                     </TableCell>
-                    <TableCell className="text-center">
+                    <TableCell className="text-center whitespace-nowrap">
                       <Badge
                         variant={
                           r.status === "CONFIRMED"
@@ -194,20 +198,24 @@ export default function GoodsReceiptsIndexRoute() {
                             : "Đã hủy"}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-center">
+                    <TableCell className="text-center whitespace-nowrap">
                       <div className="flex items-center justify-center gap-1">
                         <Link
                           to={`/goods-receipts/${r.id}`}
-                          className="p-1 text-muted-foreground hover:text-foreground"
+                          title="Xem chi tiết"
+                          className="p-1.5 text-muted-foreground hover:text-foreground rounded hover:bg-muted"
                         >
                           <Eye className="h-3.5 w-3.5" />
                         </Link>
-                        <Link
-                          to={`/goods-receipts/${r.id}/edit`}
-                          className="p-1 text-muted-foreground hover:text-foreground"
-                        >
-                          <Edit className="h-3.5 w-3.5" />
-                        </Link>
+                        {r.status !== "CANCELLED" && (
+                          <Link
+                            to={`/goods-receipts/${r.id}/edit`}
+                            title="Chỉnh sửa"
+                            className="p-1.5 text-muted-foreground hover:text-foreground rounded hover:bg-muted"
+                          >
+                            <Edit className="h-3.5 w-3.5" />
+                          </Link>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>

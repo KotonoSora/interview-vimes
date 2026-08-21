@@ -34,10 +34,9 @@ export function meta({ matches }: Route.MetaArgs) {
   const match = matches?.find(
     (m) => m?.id === "routes/_app.goods-receipts.$id.edit",
   );
-  const data = (
-    match && "loaderData" in match ? match.loaderData : undefined
-  ) as { receipt?: { receiptNumber?: string } } | undefined;
-  const number = data?.receipt?.receiptNumber || "Chứng Từ";
+  const d = (match && "loaderData" in match ? match.loaderData : undefined) as
+    { receipt?: { receiptNumber?: string } } | undefined;
+  const number = d?.receipt?.receiptNumber || "Chứng Từ";
   return [
     { title: `Chỉnh Sửa ${number} | VIMES Inventory` },
     {
@@ -88,10 +87,10 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     const rawData = await request.json();
     const parsedData = UpdateGoodsReceiptSchema.parse(rawData);
     await receiptService.updateReceipt(id, parsedData, requestId);
-    return data({ success: true, message: "Cập nhật phiếu thành công" });
+    return data({ success: true, message: "Cập nhật chứng từ thành công" });
   } catch (error: unknown) {
     const message =
-      error instanceof Error ? error.message : "Không thể cập nhật";
+      error instanceof Error ? error.message : "Không thể cập nhật chứng từ";
     return data({ success: false, message }, { status: 400 });
   }
 }
@@ -103,12 +102,15 @@ export default function EditGoodsReceiptRoute() {
   const navigate = useNavigate();
 
   const [organizationId, setOrganizationId] = useState(
-    receipt.organization?.id || organizations[0]?.id || "",
+    receipt.organizationId ||
+      receipt.organization?.id ||
+      organizations[0]?.id ||
+      "",
   );
   const [warehouseId, setWarehouseId] = useState(
-    receipt.warehouse?.id || warehouses[0]?.id || "",
+    receipt.warehouseId || receipt.warehouse?.id || warehouses[0]?.id || "",
   );
-  const [receiptDate, setReceiptDate] = useState(receipt.receiptDate);
+  const [receiptDate, setReceiptDate] = useState(receipt.receiptDate || "");
   const [receiptType, setReceiptType] = useState<
     UpdateGoodsReceiptRequest["receiptType"]
   >(receipt.receiptType || "PURCHASE");
@@ -116,6 +118,9 @@ export default function EditGoodsReceiptRoute() {
     receipt.delivererName || "",
   );
   const [docReference, setDocReference] = useState(receipt.docReference || "");
+  const [docDate, setDocDate] = useState(receipt.docDate || "");
+  const [docOrigin, setDocOrigin] = useState(receipt.docOrigin || "");
+  const [description, setDescription] = useState(receipt.description || "");
   const [debitAccount, setDebitAccount] = useState(
     receipt.debitAccount || "152",
   );
@@ -123,14 +128,15 @@ export default function EditGoodsReceiptRoute() {
     receipt.creditAccount || "331",
   );
 
+  // Chuẩn hóa nạp items từ response
   const [items, setItems] = useState<ReceiptItemRow[]>(
-    receipt.items.map((i) => ({
+    (receipt.items || []).map((i) => ({
       productId: i.productId,
-      productNameSnapshot: i.productName,
-      unitSnapshot: i.unit,
-      docQty: i.docQty,
-      actualQty: i.actualQty,
-      unitPrice: i.unitPrice,
+      productNameSnapshot: i.productNameSnapshot || i.productName || "",
+      unitSnapshot: i.unitSnapshot || i.unit || "Cái",
+      docQty: Number(i.docQty) || 0,
+      actualQty: Number(i.actualQty) || 0,
+      unitPrice: Number(i.unitPrice) || 0,
       debitAccount: i.debitAccount || "152",
       creditAccount: i.creditAccount || "331",
       note: i.note || "",
@@ -162,6 +168,15 @@ export default function EditGoodsReceiptRoute() {
   }, [fetcher.data, navigate, receipt.id]);
 
   const handleUpdate = () => {
+    if (!organizationId || !warehouseId || !delivererName.trim()) {
+      toast.add({
+        type: "error",
+        title: "Thiếu thông tin",
+        description: "Vui lòng nhập đủ Đơn vị, Kho và Người giao.",
+      });
+      return;
+    }
+
     const payload: UpdateGoodsReceiptRequest = {
       receiptDate,
       organizationId,
@@ -169,6 +184,9 @@ export default function EditGoodsReceiptRoute() {
       receiptType,
       delivererName,
       docReference: docReference || null,
+      docDate: docDate || null,
+      docOrigin: docOrigin || null,
+      description: description || null,
       debitAccount: debitAccount || null,
       creditAccount: creditAccount || null,
       totalAmountWords: totalAmountWords || null,
@@ -208,7 +226,7 @@ export default function EditGoodsReceiptRoute() {
           </Button>
           <div>
             <h1 className="text-lg font-bold">
-              Chỉnh Sửa: {receipt.receiptNumber}
+              Chỉnh Sửa Chứng Từ: {receipt.receiptNumber}
             </h1>
             <p className="text-xs text-muted-foreground">
               Mẫu số 01 - VT theo TT 200/2014/TT-BTC
@@ -238,6 +256,14 @@ export default function EditGoodsReceiptRoute() {
         </CardHeader>
         <CardContent className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <div className="space-y-1">
+            <Label className="text-xs">Số phiếu</Label>
+            <Input
+              value={receipt.receiptNumber}
+              disabled
+              className="h-8 text-xs font-mono bg-muted"
+            />
+          </div>
+          <div className="space-y-1">
             <Label className="text-xs">Ngày lập</Label>
             <Input
               type="date"
@@ -247,13 +273,13 @@ export default function EditGoodsReceiptRoute() {
             />
           </div>
           <div className="space-y-1">
-            <Label className="text-xs">Đơn vị</Label>
+            <Label className="text-xs">Đơn vị chủ quản *</Label>
             <Select
               value={organizationId}
               onValueChange={(val) => val && setOrganizationId(val)}
             >
               <SelectTrigger className="h-8 text-xs">
-                <SelectValue />
+                <SelectValue placeholder="Chọn đơn vị" />
               </SelectTrigger>
               <SelectContent>
                 {organizations.map((org) => (
@@ -265,13 +291,13 @@ export default function EditGoodsReceiptRoute() {
             </Select>
           </div>
           <div className="space-y-1">
-            <Label className="text-xs">Kho tiếp nhận</Label>
+            <Label className="text-xs">Kho tiếp nhận *</Label>
             <Select
               value={warehouseId}
               onValueChange={(val) => val && setWarehouseId(val)}
             >
               <SelectTrigger className="h-8 text-xs">
-                <SelectValue />
+                <SelectValue placeholder="Chọn kho" />
               </SelectTrigger>
               <SelectContent>
                 {warehouses.map((wh) => (
@@ -283,12 +309,59 @@ export default function EditGoodsReceiptRoute() {
             </Select>
           </div>
           <div className="space-y-1">
-            <Label className="text-xs">Người giao hàng</Label>
+            <Label className="text-xs">Người giao hàng *</Label>
             <Input
               value={delivererName}
               onChange={(e) => setDelivererName(e.target.value)}
               className="h-8 text-xs"
             />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Số chứng từ gốc</Label>
+            <Input
+              value={docReference}
+              onChange={(e) => setDocReference(e.target.value)}
+              placeholder="HĐ, Lệnh..."
+              className="h-8 text-xs"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Loại nghiệp vụ</Label>
+            <Select
+              value={receiptType}
+              onValueChange={(val) =>
+                val &&
+                setReceiptType(val as UpdateGoodsReceiptRequest["receiptType"])
+              }
+            >
+              <SelectTrigger className="h-8 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(RECEIPT_TYPE_LABELS).map(([k, v]) => (
+                  <SelectItem key={k} value={k} className="text-xs">
+                    {v}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Bút toán (Nợ / Có)</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <Input
+                value={debitAccount}
+                onChange={(e) => setDebitAccount(e.target.value)}
+                placeholder="152"
+                className="h-8 text-xs font-mono"
+              />
+              <Input
+                value={creditAccount}
+                onChange={(e) => setCreditAccount(e.target.value)}
+                placeholder="331"
+                className="h-8 text-xs font-mono"
+              />
+            </div>
           </div>
         </CardContent>
       </Card>
