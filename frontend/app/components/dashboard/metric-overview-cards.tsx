@@ -1,88 +1,97 @@
-import { Clock, DollarSign, FileCheck } from "lucide-react";
+import { Ban, CheckCircle2, Clock, FileText } from "lucide-react";
 
 import { Card, CardContent } from "~/components/ui/card";
-import { formatCurrencyVND } from "~/lib/formatters";
 
 interface MetricProps {
-  totalValue: number;
   totalReceipts: number;
   draftCount: number;
   confirmedCount: number;
+  cancelledCount: number;
 }
 
 export function MetricOverviewCards({ metrics }: { metrics: MetricProps }) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-      {/* 1. Tổng giá trị đã nhập kho thực tế */}
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* 1. Tổng chứng từ */}
       <Card className="border shadow-sm">
         <CardContent className="p-4 flex items-center justify-between">
           <div className="space-y-1">
             <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
-              Tổng Giá Trị Đã Nhập Kho
+              Tổng Chứng Từ Phát Sinh
             </p>
-            <p className="text-xl font-bold font-mono text-primary">
-              {formatCurrencyVND(metrics.totalValue)}
+            <p className="text-2xl font-bold font-mono text-foreground">
+              {metrics.totalReceipts}
             </p>
             <p className="text-[11px] text-muted-foreground">
-              Từ{" "}
-              <span className="font-semibold text-foreground">
-                {metrics.confirmedCount}
-              </span>{" "}
-              chứng từ hoàn tất (CONFIRMED)
+              Phiếu Nhập Kho (Mẫu 01 - VT)
             </p>
           </div>
           <div className="h-10 w-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
-            <DollarSign className="h-5 w-5" />
+            <FileText className="h-5 w-5" />
           </div>
         </CardContent>
       </Card>
 
-      {/* 2. Tổng chứng từ trong hệ thống */}
+      {/* 2. Đã nhập kho */}
       <Card className="border shadow-sm">
         <CardContent className="p-4 flex items-center justify-between">
           <div className="space-y-1">
             <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
-              Tổng Chứng Từ Nhập Kho
+              Đã Nhập Kho (CONFIRMED)
             </p>
-            <p className="text-xl font-bold font-mono text-foreground">
-              {metrics.totalReceipts}{" "}
-              <span className="text-xs font-normal text-muted-foreground">
-                phiếu
-              </span>
+            <p className="text-2xl font-bold font-mono text-emerald-600 dark:text-emerald-400">
+              {metrics.confirmedCount}
             </p>
             <p className="text-[11px] text-muted-foreground">
-              Mẫu số 01 - VT (TT 200/2014/TT-BTC)
+              Chứng từ hợp lệ đã ghi sổ
             </p>
           </div>
-          <div className="h-10 w-10 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
-            <FileCheck className="h-5 w-5" />
+          <div className="h-10 w-10 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
+            <CheckCircle2 className="h-5 w-5" />
           </div>
         </CardContent>
       </Card>
 
-      {/* 3. Chứng từ nháp tồn đọng */}
+      {/* 3. Phiếu nháp */}
       <Card
         className={`border shadow-sm ${metrics.draftCount > 0 ? "border-amber-500/40 bg-amber-500/5" : ""}`}
       >
         <CardContent className="p-4 flex items-center justify-between">
           <div className="space-y-1">
             <p className="text-[11px] font-medium text-amber-700 dark:text-amber-400 uppercase tracking-wider">
-              Phiếu Nháp Chờ Hoàn Tất
+              Bản Nháp (DRAFT)
             </p>
-            <p className="text-xl font-bold font-mono text-amber-600 dark:text-amber-400">
-              {metrics.draftCount}{" "}
-              <span className="text-xs font-normal text-muted-foreground">
-                bản nháp (DRAFT)
-              </span>
+            <p className="text-2xl font-bold font-mono text-amber-600 dark:text-amber-400">
+              {metrics.draftCount}
             </p>
             <p className="text-[11px] text-muted-foreground">
               {metrics.draftCount > 0
-                ? "Chưa tính vào tổng giá trị kho"
-                : "Không có phiếu tồn đọng"}
+                ? "Cần kiểm đếm & hoàn tất"
+                : "Không có phiếu tồn"}
             </p>
           </div>
           <div className="h-10 w-10 rounded-lg bg-amber-500/10 text-amber-600 flex items-center justify-center shrink-0">
             <Clock className="h-5 w-5" />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 4. Phiếu đã hủy */}
+      <Card className="border shadow-sm">
+        <CardContent className="p-4 flex items-center justify-between">
+          <div className="space-y-1">
+            <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+              Đã Hủy (CANCELLED)
+            </p>
+            <p className="text-2xl font-bold font-mono text-muted-foreground">
+              {metrics.cancelledCount}
+            </p>
+            <p className="text-[11px] text-muted-foreground">
+              Chứng từ vô hiệu hóa
+            </p>
+          </div>
+          <div className="h-10 w-10 rounded-lg bg-muted text-muted-foreground flex items-center justify-center shrink-0">
+            <Ban className="h-5 w-5" />
           </div>
         </CardContent>
       </Card>

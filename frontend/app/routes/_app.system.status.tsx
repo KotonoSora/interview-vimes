@@ -26,20 +26,16 @@ export const middleware = [traceAndAuthMiddleware];
 export async function loader({ context }: Route.LoaderArgs) {
   const requestId = context.get(requestIdContext) || crypto.randomUUID();
   const [health, readiness, metricsText] = await Promise.all([
-    systemService
-      .checkLiveness(requestId)
-      .catch((): LivenessResponse => ({
-        status: "DOWN",
-        uptime: 0,
-        timestamp: new Date().toISOString(),
-      })),
-    systemService
-      .checkReadiness(requestId)
-      .catch(() => ({
-        status: "UNHEALTHY",
-        checks: { database: "DOWN", poolTotal: 0, poolIdle: 0, poolWaiting: 0 },
-        timestamp: new Date().toISOString(),
-      })),
+    systemService.checkLiveness(requestId).catch((): LivenessResponse => ({
+      status: "DOWN",
+      uptime: 0,
+      timestamp: new Date().toISOString(),
+    })),
+    systemService.checkReadiness(requestId).catch(() => ({
+      status: "UNHEALTHY",
+      checks: { database: "DOWN", poolTotal: 0, poolIdle: 0, poolWaiting: 0 },
+      timestamp: new Date().toISOString(),
+    })),
     systemService
       .getPrometheusMetrics(requestId)
       .catch(() => "# Không thể tải metrics"),

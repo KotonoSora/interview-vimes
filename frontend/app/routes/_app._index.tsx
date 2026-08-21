@@ -1,20 +1,22 @@
-import { Building2, Warehouse } from "lucide-react";
-import { Link, useLoaderData } from "react-router";
+import {
+  Activity,
+  ArrowRight,
+  Boxes,
+  Building2,
+  FileCheck2,
+  FileSpreadsheet,
+  Package,
+  Plus,
+  Warehouse,
+} from "lucide-react";
+import { Link } from "react-router";
 
 import type { Route } from "./+types/_app._index";
 
-import type { GoodsReceiptListItem } from "~/services/receipt.service";
-
-import { MetricOverviewCards } from "~/components/dashboard/metric-overview-cards";
+import { buttonVariants } from "~/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { PAGE_ROUTES } from "~/constants/navigation.constants";
-import { formatCurrencyVND } from "~/lib/formatters";
-import {
-  requestIdContext,
-  traceAndAuthMiddleware,
-} from "~/middleware/auth-trace.server";
-import { masterDataService } from "~/services/master-data.service";
-import { receiptService } from "~/services/receipt.service";
+import { traceAndAuthMiddleware } from "~/middleware/auth-trace.server";
 
 export function meta() {
   return [
@@ -25,226 +27,136 @@ export function meta() {
 
 export const middleware = [traceAndAuthMiddleware];
 
-export async function loader({ context }: Route.LoaderArgs) {
-  const requestId = context.get(requestIdContext) || crypto.randomUUID();
-
-  const [receiptsRes, warehousesRes, orgsRes] = await Promise.all([
-    receiptService
-      .getReceipts({ limit: 500 }, requestId)
-      .catch(() => ({ data: [] })),
-    masterDataService.getWarehouses(requestId).catch(() => ({ data: [] })),
-    masterDataService.getOrganizations(requestId).catch(() => ({ data: [] })),
-  ]);
-
-  const list: GoodsReceiptListItem[] = receiptsRes.data || [];
-  const warehouses = warehousesRes.data || [];
-  const organizations = orgsRes.data || [];
-
-  const confirmedList = list.filter((r) => r.status === "CONFIRMED");
-  const draftList = list.filter((r) => r.status === "DRAFT");
-  const totalAmount = confirmedList.reduce(
-    (sum, r) => sum + Number(r.totalAmount || 0),
-    0,
-  );
-
-  const warehouseStats = warehouses
-    .map((wh) => {
-      const whReceipts = list.filter(
-        (r) => r.warehouseName === wh.name || r.warehouse?.name === wh.name,
-      );
-      const whConfirmed = whReceipts.filter((r) => r.status === "CONFIRMED");
-      const whTotal = whConfirmed.reduce(
-        (sum, r) => sum + Number(r.totalAmount || 0),
-        0,
-      );
-      return {
-        id: wh.id,
-        name: wh.name,
-        code: wh.code,
-        location: wh.location,
-        totalCount: whReceipts.length,
-        confirmedCount: whConfirmed.length,
-        totalAmount: whTotal,
-      };
-    })
-    .sort((a, b) => b.totalAmount - a.totalAmount);
-
-  const orgStats = organizations
-    .map((org) => {
-      const orgReceipts = list.filter(
-        (r) =>
-          (r as any).organizationId === org.id ||
-          (r as any).organization?.id === org.id ||
-          (r as any).organizationName === org.name ||
-          (r as any).organization?.name === org.name,
-      );
-      const orgConfirmed = orgReceipts.filter((r) => r.status === "CONFIRMED");
-      const orgTotal = orgConfirmed.reduce(
-        (sum, r) => sum + Number(r.totalAmount || 0),
-        0,
-      );
-      return {
-        id: org.id,
-        name: org.name,
-        code: org.code,
-        department: org.department,
-        totalCount: orgReceipts.length,
-        totalAmount: orgTotal,
-      };
-    })
-    .sort((a, b) => b.totalAmount - a.totalAmount);
-
-  return {
-    metrics: {
-      totalReceipts: list.length,
-      totalValue: totalAmount,
-      draftCount: draftList.length,
-      confirmedCount: confirmedList.length,
-    },
-    warehouseStats,
-    orgStats,
-  };
-}
-
 export default function DashboardIndexRoute() {
-  const { metrics, warehouseStats, orgStats } = useLoaderData<typeof loader>();
-
   return (
-    <div className="space-y-5 max-w-[1500px] mx-auto pb-8">
-      <MetricOverviewCards metrics={metrics} />
-
-      <Card className="border shadow-sm">
-        <CardHeader className="py-3 px-4 border-b bg-card flex flex-row items-center justify-between">
-          <CardTitle className="text-xs font-semibold flex items-center gap-2">
-            <Warehouse className="h-4 w-4 text-primary" /> Phân Bổ Theo Kho Tiếp
-            Nhận
-          </CardTitle>
-          <span className="text-[11px] text-muted-foreground">
-            Theo giá trị đã nhập kho
-          </span>
-        </CardHeader>
-        <CardContent className="p-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
-            {warehouseStats.map((wh) => {
-              const share =
-                metrics.totalValue > 0
-                  ? Math.round((wh.totalAmount / metrics.totalValue) * 100)
-                  : 0;
-              return (
-                <div
-                  key={wh.id}
-                  className="p-3.5 rounded-lg border bg-card space-y-2.5 text-xs shadow-xs"
-                >
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <span className="font-semibold text-foreground">
-                        {wh.name}
-                      </span>
-                      {wh.location && (
-                        <p className="text-[10px] text-muted-foreground truncate">
-                          {wh.location}
-                        </p>
-                      )}
-                    </div>
-                    <span className="font-mono text-[10px] font-semibold text-primary bg-primary/10 px-1.5 py-0.5 rounded">
-                      {wh.code || "KHO"}
-                    </span>
-                  </div>
-
-                  <div className="space-y-1.5 pt-1 border-t">
-                    <div className="flex justify-between items-baseline font-mono">
-                      <span className="text-sm font-bold text-foreground">
-                        {formatCurrencyVND(wh.totalAmount)}
-                      </span>
-                      <span className="text-[11px] font-semibold text-primary">
-                        {share}%
-                      </span>
-                    </div>
-                    <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
-                      <div
-                        className="bg-primary h-full rounded-full transition-all duration-500"
-                        style={{ width: `${share}%` }}
-                      />
-                    </div>
-                    <div className="flex justify-between text-[10px] text-muted-foreground">
-                      <span>Đã nhập: {wh.confirmedCount} phiếu</span>
-                      <span>Tổng phát sinh: {wh.totalCount} phiếu</span>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+    <div className="space-y-6 max-w-5xl mx-auto py-2">
+      {/* KHỐI GIỚI THIỆU PHÂN HỆ */}
+      <div className="rounded-xl border bg-card p-6 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1.5">
+            <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary">
+              <Boxes className="h-3.5 w-3.5" />
+              Hệ Thống Quản Lý Kho & Kế Toán Vật Tư
+            </div>
+            <h1 className="text-xl font-bold tracking-tight text-foreground">
+              Phân Hệ Quản Lý Phiếu Nhập Kho (Mẫu 01 - VT)
+            </h1>
+            <p className="text-xs text-muted-foreground max-w-2xl leading-relaxed">
+              Theo dõi biến động nhập vật tư, công cụ, dụng cụ và hàng hóa theo
+              quy định của Thông tư 200/2014/TT-BTC. Hỗ trợ lập phiếu, định
+              khoản tự động Nợ/Có và xuất in chứng từ chuẩn A4.
+            </p>
           </div>
-        </CardContent>
-      </Card>
-
-      <Card className="border shadow-sm">
-        <CardHeader className="py-3 px-4 border-b bg-card flex flex-row items-center justify-between">
-          <CardTitle className="text-xs font-semibold flex items-center gap-2">
-            <Building2 className="h-4 w-4 text-primary" /> Phân Bổ Theo Đơn Vị &
-            Phòng Ban
-          </CardTitle>
-          <span className="text-[11px] text-muted-foreground">
-            Theo pháp nhân lập phiếu
-          </span>
-        </CardHeader>
-        <CardContent className="p-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
-            {orgStats.map((org) => {
-              const share =
-                metrics.totalValue > 0
-                  ? Math.round((org.totalAmount / metrics.totalValue) * 100)
-                  : 0;
-              return (
-                <div
-                  key={org.id}
-                  className="p-3.5 rounded-lg border bg-card space-y-2.5 text-xs shadow-xs"
-                >
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <span className="font-semibold text-foreground">
-                        {org.name}
-                      </span>
-                      {org.department && (
-                        <p className="text-[10px] text-muted-foreground truncate">
-                          {org.department}
-                        </p>
-                      )}
-                    </div>
-                    <span className="font-mono text-[10px] font-semibold text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-                      {org.code || "DV"}
-                    </span>
-                  </div>
-
-                  <div className="space-y-1.5 pt-1 border-t">
-                    <div className="flex justify-between items-baseline font-mono">
-                      <span className="text-sm font-bold text-foreground">
-                        {formatCurrencyVND(org.totalAmount)}
-                      </span>
-                      <span className="text-[11px] font-semibold text-muted-foreground">
-                        {share}%
-                      </span>
-                    </div>
-                    <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
-                      <div
-                        className="bg-muted-foreground h-full rounded-full transition-all duration-500"
-                        style={{ width: `${share}%` }}
-                      />
-                    </div>
-                    <div className="flex justify-between text-[10px] text-muted-foreground">
-                      <span>Phát sinh: {org.totalCount} chứng từ</span>
-                      <Link
-                        to="/goods-receipts"
-                        className="text-primary hover:underline"
-                      >
-                        Xem chứng từ
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+          <div className="shrink-0 flex sm:flex-col gap-2">
+            <Link
+              to="/goods-receipts/new"
+              className={
+                buttonVariants({ variant: "default" }) +
+                " h-8 text-xs gap-1.5 shadow-sm"
+              }
+            >
+              <Plus className="h-3.5 w-3.5" /> Lập Phiếu Mới
+            </Link>
+            <Link
+              to="/goods-receipts"
+              className={
+                buttonVariants({ variant: "outline" }) + " h-8 text-xs gap-1.5"
+              }
+            >
+              <FileSpreadsheet className="h-3.5 w-3.5 text-muted-foreground" />{" "}
+              Xem Sổ Chứng Từ
+            </Link>
           </div>
+        </div>
+      </div>
+
+      {/* CÁC PHÂN HỆ NGHIỆP VỤ CHÍNH */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Phân hệ Chứng từ */}
+        <Card className="border shadow-sm">
+          <CardHeader className="py-3 px-4 border-b bg-muted/20">
+            <CardTitle className="text-xs font-semibold flex items-center gap-2">
+              <FileCheck2 className="h-4 w-4 text-primary" />
+              Nghiệp Vụ Chứng Từ Kho
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-4 space-y-3">
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Quản lý toàn bộ vòng đời chứng từ từ khi lập nháp, kiểm nhận số
+              lượng theo chứng từ gốc, đến khi thủ kho và kế toán trưởng hoàn
+              tất nhập kho.
+            </p>
+            <div className="flex items-center gap-2 pt-1">
+              <Link
+                to="/goods-receipts"
+                className="text-xs text-primary hover:underline font-medium inline-flex items-center gap-1"
+              >
+                Mở sổ theo dõi phiếu nhập kho <ArrowRight className="h-3 w-3" />
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Phân hệ Master Data */}
+        <Card className="border shadow-sm">
+          <CardHeader className="py-3 px-4 border-b bg-muted/20">
+            <CardTitle className="text-xs font-semibold flex items-center gap-2">
+              <Boxes className="h-4 w-4 text-primary" />
+              Danh Mục Dùng Chung
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-4 space-y-3">
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Quản lý danh mục vật tư, quy cách chuẩn, hệ thống kho bãi tiếp
+              nhận và thông tin các đơn vị/phòng ban trực thuộc phục vụ việc lập
+              chứng từ.
+            </p>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 pt-1 text-xs">
+              <Link
+                to="/master-data/products"
+                className="text-primary hover:underline inline-flex items-center gap-1"
+              >
+                <Package className="h-3 w-3" /> Vật tư
+              </Link>
+              <Link
+                to="/master-data/warehouses"
+                className="text-primary hover:underline inline-flex items-center gap-1"
+              >
+                <Warehouse className="h-3 w-3" /> Kho bãi
+              </Link>
+              <Link
+                to="/master-data/organizations"
+                className="text-primary hover:underline inline-flex items-center gap-1"
+              >
+                <Building2 className="h-3 w-3" /> Đơn vị
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* GIÁM SÁT HỆ THỐNG */}
+      <Card className="border shadow-sm">
+        <CardHeader className="py-3 px-4 border-b bg-muted/20 flex flex-row items-center justify-between">
+          <CardTitle className="text-xs font-semibold flex items-center gap-2">
+            <Activity className="h-4 w-4 text-primary" />
+            Vận Hành & Kết Nối Hệ Thống
+          </CardTitle>
+          <Link
+            to="/system/status"
+            className="text-xs text-primary hover:underline inline-flex items-center gap-1"
+          >
+            Kiểm tra trạng thái <ArrowRight className="h-3 w-3" />
+          </Link>
+        </CardHeader>
+        <CardContent className="p-4 text-xs text-muted-foreground flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <span>
+            Hệ thống giám sát tự động: Liveness, Readiness, Database Connection
+            Pool và Prometheus Metrics.
+          </span>
+          <span className="font-mono text-[11px] bg-muted px-2 py-0.5 rounded shrink-0">
+            v1.0.0 — Production
+          </span>
         </CardContent>
       </Card>
     </div>
