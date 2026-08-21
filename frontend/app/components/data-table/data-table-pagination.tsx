@@ -4,6 +4,7 @@ import {
   ChevronsLeft,
   ChevronsRight,
 } from "lucide-react";
+
 import { Button } from "~/components/ui/button";
 import {
   Select,
@@ -33,12 +34,18 @@ export function DataTablePagination({
   return (
     <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-3 py-2.5 border-t bg-muted/20 text-xs">
       <div className="text-muted-foreground text-xs">
-        Tổng cộng: <strong className="text-foreground font-mono font-semibold">{totalCount}</strong> bản ghi
+        Tổng cộng:{" "}
+        <strong className="text-foreground font-mono font-semibold">
+          {totalCount}
+        </strong>{" "}
+        bản ghi
       </div>
 
       <div className="flex flex-wrap items-center gap-4 sm:gap-6">
         <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground whitespace-nowrap">Hiển thị:</span>
+          <span className="text-xs text-muted-foreground whitespace-nowrap">
+            Hiển thị:
+          </span>
           <Select
             value={String(pageSize)}
             onValueChange={(val: string | null) => {
@@ -59,7 +66,11 @@ export function DataTablePagination({
         </div>
 
         <div className="flex items-center justify-center text-xs font-medium text-muted-foreground whitespace-nowrap">
-          Trang <span className="font-mono text-foreground font-semibold mx-1">{pageIndex + 1}</span> / {pageCount}
+          Trang{" "}
+          <span className="font-mono text-foreground font-semibold mx-1">
+            {pageIndex + 1}
+          </span>{" "}
+          / {pageCount}
         </div>
 
         <div className="flex items-center gap-1">

@@ -1,9 +1,17 @@
-import { useSubmit } from "react-router";
-import type { MasterWarehouse } from "~/services/master-data.service";
-import { Input } from "~/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/ui/select";
-import { DatePicker } from "~/components/ui/date-picker";
 import { Search } from "lucide-react";
+import { useSubmit } from "react-router";
+
+import type { MasterWarehouse } from "~/services/master-data.service";
+
+import { DatePicker } from "~/components/ui/date-picker";
+import { Input } from "~/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "~/components/ui/select";
 
 interface Props {
   warehouses: MasterWarehouse[];
@@ -46,7 +54,10 @@ export function ReceiptFilterToolbar({ warehouses, currentFilters }: Props) {
           }}
           onKeyDown={(e) => {
             if (e.key === "Enter") {
-              handleFilterChange("search", (e.target as HTMLInputElement).value);
+              handleFilterChange(
+                "search",
+                (e.target as HTMLInputElement).value,
+              );
             }
           }}
           className="pl-8 h-8 text-xs bg-background"
@@ -57,16 +68,21 @@ export function ReceiptFilterToolbar({ warehouses, currentFilters }: Props) {
       <div className="min-w-[220px] max-w-[280px]">
         <Select
           defaultValue={currentFilters.warehouseId || "all"}
-          onValueChange={(val: string | null) => handleFilterChange("warehouseId", val)}
+          onValueChange={(val: string | null) =>
+            handleFilterChange("warehouseId", val)
+          }
         >
           <SelectTrigger className="h-8 text-xs bg-background w-full">
             <SelectValue placeholder="Tất cả kho tiếp nhận" />
           </SelectTrigger>
           <SelectContent className="min-w-[260px]">
-            <SelectItem value="all" className="text-xs">Tất cả kho tiếp nhận</SelectItem>
+            <SelectItem value="all" className="text-xs">
+              Tất cả kho tiếp nhận
+            </SelectItem>
             {warehouses.map((w) => (
               <SelectItem key={w.id} value={w.id} className="text-xs">
-                {w.code ? `[${w.code}] ` : ""}{w.name}
+                {w.code ? `[${w.code}] ` : ""}
+                {w.name}
               </SelectItem>
             ))}
           </SelectContent>
@@ -77,16 +93,26 @@ export function ReceiptFilterToolbar({ warehouses, currentFilters }: Props) {
       <div className="min-w-[150px]">
         <Select
           defaultValue={currentFilters.status || "all"}
-          onValueChange={(val: string | null) => handleFilterChange("status", val)}
+          onValueChange={(val: string | null) =>
+            handleFilterChange("status", val)
+          }
         >
           <SelectTrigger className="h-8 text-xs bg-background w-full">
             <SelectValue placeholder="Trạng thái" />
           </SelectTrigger>
           <SelectContent className="min-w-[160px]">
-            <SelectItem value="all" className="text-xs">Mọi trạng thái</SelectItem>
-            <SelectItem value="CONFIRMED" className="text-xs">Đã nhập kho</SelectItem>
-            <SelectItem value="DRAFT" className="text-xs">Bản nháp</SelectItem>
-            <SelectItem value="CANCELLED" className="text-xs">Đã hủy</SelectItem>
+            <SelectItem value="all" className="text-xs">
+              Mọi trạng thái
+            </SelectItem>
+            <SelectItem value="CONFIRMED" className="text-xs">
+              Đã nhập kho
+            </SelectItem>
+            <SelectItem value="DRAFT" className="text-xs">
+              Bản nháp
+            </SelectItem>
+            <SelectItem value="CANCELLED" className="text-xs">
+              Đã hủy
+            </SelectItem>
           </SelectContent>
         </Select>
       </div>

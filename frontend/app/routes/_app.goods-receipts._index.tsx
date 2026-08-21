@@ -16,6 +16,7 @@ import { DataTableColumnHeader } from "~/components/data-table/data-table-column
 import { ReceiptFilterToolbar } from "~/components/goods-receipt/receipt-filter-toolbar";
 import { Badge } from "~/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
+import { PAGE_ROUTES } from "~/constants/navigation.constants";
 import { RECEIPT_TYPE_LABELS } from "~/constants/receipt.constants";
 import { formatCurrencyVND } from "~/lib/formatters";
 import {
@@ -27,11 +28,8 @@ import { receiptService } from "~/services/receipt.service";
 
 export function meta() {
   return [
-    { title: "Sổ Theo Dõi Phiếu Nhập Kho | VIMES Inventory" },
-    {
-      name: "description",
-      content: "Danh sách, tìm kiếm và lọc chứng từ Phiếu Nhập Kho Mẫu 01-VT.",
-    },
+    { title: PAGE_ROUTES.GOODS_RECEIPTS.metaTitle },
+    { name: "description", content: PAGE_ROUTES.GOODS_RECEIPTS.description },
   ];
 }
 
@@ -246,7 +244,7 @@ export default function GoodsReceiptsIndexRoute() {
         <CardHeader className="py-2.5 px-4 border-b flex flex-row items-center justify-between bg-card">
           <CardTitle className="text-xs font-semibold flex items-center gap-2 text-foreground">
             <FileText className="h-4 w-4 text-primary" />
-            Danh Sách Chứng Từ ({receipts.length})
+            {PAGE_ROUTES.GOODS_RECEIPTS.title} ({receipts.length})
           </CardTitle>
           <Link
             to="/goods-receipts/new"

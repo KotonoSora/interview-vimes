@@ -5,6 +5,7 @@ import type { Route } from "./+types/_app.master-data.organizations";
 
 import { OrganizationTableSection } from "~/components/master-data/organization-table-section";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
+import { PAGE_ROUTES } from "~/constants/navigation.constants";
 import {
   requestIdContext,
   traceAndAuthMiddleware,
@@ -13,10 +14,10 @@ import { masterDataService } from "~/services/master-data.service";
 
 export function meta() {
   return [
-    { title: "Danh Mục Đơn Vị & Phòng Ban | VIMES Inventory" },
+    { title: PAGE_ROUTES.MASTER_ORGANIZATIONS.metaTitle },
     {
       name: "description",
-      content: "Tra cứu thông tin pháp nhân và các bộ phận lập phiếu.",
+      content: PAGE_ROUTES.MASTER_ORGANIZATIONS.description,
     },
   ];
 }
@@ -36,8 +37,8 @@ export default function MasterDataOrganizationsRoute() {
       <Card>
         <CardHeader className="py-2.5 px-4 border-b">
           <CardTitle className="text-xs font-semibold flex items-center gap-2">
-            <Building2 className="h-4 w-4 text-primary" /> Danh Sách Đơn Vị &
-            Pháp Nhân ({organizations.length})
+            <Building2 className="h-4 w-4 text-primary" />{" "}
+            {PAGE_ROUTES.MASTER_ORGANIZATIONS.title} ({organizations.length})
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">

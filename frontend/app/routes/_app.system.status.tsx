@@ -7,6 +7,7 @@ import type { LivenessResponse } from "~/services/system.service";
 import { DbPoolMetricsCard } from "~/components/system/db-pool-metrics-card";
 import { PerformanceMetricsCard } from "~/components/system/performance-metrics-card";
 import { ServiceHealthCard } from "~/components/system/service-health-card";
+import { PAGE_ROUTES } from "~/constants/navigation.constants";
 import {
   requestIdContext,
   traceAndAuthMiddleware,
@@ -15,11 +16,8 @@ import { systemService } from "~/services/system.service";
 
 export function meta() {
   return [
-    { title: "Giám Sát Hệ Thống (Observability) | VIMES Inventory" },
-    {
-      name: "description",
-      content: "Theo dõi Liveness/Readiness probes và Prometheus Metrics.",
-    },
+    { title: PAGE_ROUTES.SYSTEM_STATUS.metaTitle },
+    { name: "description", content: PAGE_ROUTES.SYSTEM_STATUS.description },
   ];
 }
 
@@ -28,16 +26,20 @@ export const middleware = [traceAndAuthMiddleware];
 export async function loader({ context }: Route.LoaderArgs) {
   const requestId = context.get(requestIdContext) || crypto.randomUUID();
   const [health, readiness, metricsText] = await Promise.all([
-    systemService.checkLiveness(requestId).catch((): LivenessResponse => ({
-      status: "DOWN",
-      uptime: 0,
-      timestamp: new Date().toISOString(),
-    })),
-    systemService.checkReadiness(requestId).catch(() => ({
-      status: "UNHEALTHY",
-      checks: { database: "DOWN", poolTotal: 0, poolIdle: 0, poolWaiting: 0 },
-      timestamp: new Date().toISOString(),
-    })),
+    systemService
+      .checkLiveness(requestId)
+      .catch((): LivenessResponse => ({
+        status: "DOWN",
+        uptime: 0,
+        timestamp: new Date().toISOString(),
+      })),
+    systemService
+      .checkReadiness(requestId)
+      .catch(() => ({
+        status: "UNHEALTHY",
+        checks: { database: "DOWN", poolTotal: 0, poolIdle: 0, poolWaiting: 0 },
+        timestamp: new Date().toISOString(),
+      })),
     systemService
       .getPrometheusMetrics(requestId)
       .catch(() => "# Không thể tải metrics"),

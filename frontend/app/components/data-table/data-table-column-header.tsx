@@ -1,9 +1,9 @@
 import { ArrowDown, ArrowUp, ChevronsUpDown } from "lucide-react";
-import { cn } from "~/lib/utils";
-import { Button } from "~/components/ui/button";
 
-interface DataTableColumnHeaderProps
-  extends React.HTMLAttributes<HTMLDivElement> {
+import { Button } from "~/components/ui/button";
+import { cn } from "~/lib/utils";
+
+interface DataTableColumnHeaderProps extends React.HTMLAttributes<HTMLDivElement> {
   column: {
     getIsSorted: () => "asc" | "desc" | false;
     toggleSorting: (descending?: boolean) => void;

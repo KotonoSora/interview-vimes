@@ -5,6 +5,7 @@ import type { Route } from "./+types/_app.master-data.warehouses";
 
 import { WarehouseTableSection } from "~/components/master-data/warehouse-table-section";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
+import { PAGE_ROUTES } from "~/constants/navigation.constants";
 import {
   requestIdContext,
   traceAndAuthMiddleware,
@@ -13,11 +14,8 @@ import { masterDataService } from "~/services/master-data.service";
 
 export function meta() {
   return [
-    { title: "Danh Mục Kho Bãi Tiếp Nhận | VIMES Inventory" },
-    {
-      name: "description",
-      content: "Danh sách các địa điểm kho vật lý trực thuộc doanh nghiệp.",
-    },
+    { title: PAGE_ROUTES.MASTER_WAREHOUSES.metaTitle },
+    { name: "description", content: PAGE_ROUTES.MASTER_WAREHOUSES.description },
   ];
 }
 
@@ -36,8 +34,8 @@ export default function MasterDataWarehousesRoute() {
       <Card>
         <CardHeader className="py-2.5 px-4 border-b">
           <CardTitle className="text-xs font-semibold flex items-center gap-2">
-            <Warehouse className="h-4 w-4 text-primary" /> Danh Sách Kho Tiếp
-            Nhận ({warehouses.length})
+            <Warehouse className="h-4 w-4 text-primary" />{" "}
+            {PAGE_ROUTES.MASTER_WAREHOUSES.title} ({warehouses.length})
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">

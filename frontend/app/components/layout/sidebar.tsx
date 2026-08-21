@@ -11,49 +11,43 @@ import { NavLink } from "react-router";
 
 import { Badge } from "~/components/ui/badge";
 import { Separator } from "~/components/ui/separator";
+import { PAGE_ROUTES } from "~/constants/navigation.constants";
 
-interface NavItem {
-  title: string;
-  href: string;
-  icon: React.ComponentType<{ className?: string }>;
-  badge?: string;
-}
-
-const mainNavItems: NavItem[] = [
+const mainNavItems = [
   {
-    title: "Tổng quan",
+    title: PAGE_ROUTES.HOME.title,
     href: "/",
     icon: LayoutDashboard,
   },
   {
-    title: "Phiếu nhập kho (01-VT)",
+    title: PAGE_ROUTES.GOODS_RECEIPTS.title,
     href: "/goods-receipts",
     icon: FileSpreadsheet,
-    badge: "TT 200",
+    badge: PAGE_ROUTES.GOODS_RECEIPTS.badge,
   },
 ];
 
-const masterDataItems: NavItem[] = [
+const masterDataItems = [
   {
-    title: "Danh mục Vật tư",
+    title: PAGE_ROUTES.MASTER_PRODUCTS.title,
     href: "/master-data/products",
     icon: Package,
   },
   {
-    title: "Danh mục Kho bãi",
+    title: PAGE_ROUTES.MASTER_WAREHOUSES.title,
     href: "/master-data/warehouses",
     icon: Warehouse,
   },
   {
-    title: "Đơn vị / Phòng ban",
+    title: PAGE_ROUTES.MASTER_ORGANIZATIONS.title,
     href: "/master-data/organizations",
     icon: Building2,
   },
 ];
 
-const systemItems: NavItem[] = [
+const systemItems = [
   {
-    title: "Trạng thái hệ thống",
+    title: PAGE_ROUTES.SYSTEM_STATUS.title,
     href: "/system/status",
     icon: Activity,
   },
@@ -69,7 +63,6 @@ export function Sidebar() {
 
   return (
     <aside className="w-64 border-r bg-card h-screen flex flex-col shrink-0 sticky top-0">
-      {/* Brand Header */}
       <div className="h-16 flex items-center gap-3 px-6 border-b">
         <div className="p-1.5 bg-primary rounded-md text-primary-foreground">
           <Boxes className="h-5 w-5" />
@@ -84,7 +77,6 @@ export function Sidebar() {
         </div>
       </div>
 
-      {/* Navigation Links */}
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
         <div>
           <div className="px-3 mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">

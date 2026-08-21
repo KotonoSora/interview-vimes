@@ -1,4 +1,5 @@
 import * as React from "react";
+
 import {
   Table,
   TableBody,
@@ -7,6 +8,7 @@ import {
   TableHeader,
   TableRow,
 } from "~/components/ui/table";
+
 import { DataTablePagination } from "./data-table-pagination";
 
 export type SortDirection = "asc" | "desc" | false;
@@ -22,7 +24,8 @@ export interface ColumnContext<TData> {
 export interface ColumnDef<TData> {
   id?: string;
   accessorKey?: keyof TData | string;
-  header: React.ReactNode | ((context: ColumnContext<TData>) => React.ReactNode);
+  header:
+    React.ReactNode | ((context: ColumnContext<TData>) => React.ReactNode);
   cell?: (props: { row: { original: TData } }) => React.ReactNode;
   enableSorting?: boolean;
 }
@@ -44,7 +47,10 @@ export function DataTable<TData>({
 }: DataTableProps<TData>) {
   const [currentPage, setCurrentPage] = React.useState(1);
   const [currentPageSize, setCurrentPageSize] = React.useState(pageSize);
-  const [sorting, setSorting] = React.useState<{ id: string; desc: boolean } | null>(null);
+  const [sorting, setSorting] = React.useState<{
+    id: string;
+    desc: boolean;
+  } | null>(null);
 
   const sortedData = React.useMemo(() => {
     if (!sorting) return data;
@@ -60,7 +66,10 @@ export function DataTable<TData>({
     });
   }, [data, sorting]);
 
-  const totalPages = Math.max(1, Math.ceil(sortedData.length / currentPageSize));
+  const totalPages = Math.max(
+    1,
+    Math.ceil(sortedData.length / currentPageSize),
+  );
   const paginatedData = React.useMemo(() => {
     if (!showPagination) return sortedData;
     const start = (currentPage - 1) * currentPageSize;
@@ -87,7 +96,12 @@ export function DataTable<TData>({
             <TableRow className="bg-muted/40 text-xs hover:bg-muted/40">
               {columns.map((col, idx) => {
                 const colId = col.id || String(col.accessorKey) || String(idx);
-                const isSorted: SortDirection = sorting?.id === colId ? (sorting.desc ? "desc" : "asc") : false;
+                const isSorted: SortDirection =
+                  sorting?.id === colId
+                    ? sorting.desc
+                      ? "desc"
+                      : "asc"
+                    : false;
 
                 const columnContext: ColumnContext<TData> = {
                   column: {
@@ -98,8 +112,13 @@ export function DataTable<TData>({
                 };
 
                 return (
-                  <TableHead key={colId} className="text-xs font-semibold py-2 px-3 whitespace-nowrap">
-                    {typeof col.header === "function" ? col.header(columnContext) : col.header}
+                  <TableHead
+                    key={colId}
+                    className="text-xs font-semibold py-2 px-3 whitespace-nowrap"
+                  >
+                    {typeof col.header === "function"
+                      ? col.header(columnContext)
+                      : col.header}
                   </TableHead>
                 );
               })}
@@ -132,7 +151,10 @@ export function DataTable<TData>({
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-32 text-center text-xs text-muted-foreground">
+                <TableCell
+                  colSpan={columns.length}
+                  className="h-32 text-center text-xs text-muted-foreground"
+                >
                   {emptyMessage}
                 </TableCell>
               </TableRow>

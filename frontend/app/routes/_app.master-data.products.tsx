@@ -5,6 +5,7 @@ import type { Route } from "./+types/_app.master-data.products";
 
 import { ProductTableSection } from "~/components/master-data/product-table-section";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
+import { PAGE_ROUTES } from "~/constants/navigation.constants";
 import {
   requestIdContext,
   traceAndAuthMiddleware,
@@ -13,12 +14,8 @@ import { masterDataService } from "~/services/master-data.service";
 
 export function meta() {
   return [
-    { title: "Danh Mục Vật Tư & Hàng Hóa | VIMES Inventory" },
-    {
-      name: "description",
-      content:
-        "Tra cứu danh mục sản phẩm, quy cách kỹ thuật và bảng giá tiêu chuẩn.",
-    },
+    { title: PAGE_ROUTES.MASTER_PRODUCTS.metaTitle },
+    { name: "description", content: PAGE_ROUTES.MASTER_PRODUCTS.description },
   ];
 }
 
@@ -39,8 +36,8 @@ export default function MasterDataProductsRoute() {
       <Card>
         <CardHeader className="py-2.5 px-4 border-b">
           <CardTitle className="text-xs font-semibold flex items-center gap-2">
-            <Package className="h-4 w-4 text-primary" /> Danh Sách Vật Tư & Quy
-            Cách ({products.length})
+            <Package className="h-4 w-4 text-primary" />{" "}
+            {PAGE_ROUTES.MASTER_PRODUCTS.title} ({products.length})
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
