@@ -6,7 +6,7 @@
 !vitest.config.ts
 !README.md
 !tsconfig.json
-!react-router.config.ts
+!.lintstagedrc.mjs
 
 # Allow folder .vscode
 !.vscode/

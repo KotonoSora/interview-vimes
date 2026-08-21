@@ -1,0 +1,50 @@
+import { useLoaderData } from "react-router";
+
+import type { Route } from "./+types/_app.system.status";
+
+import { DbPoolMetricsCard } from "~/components/system/db-pool-metrics-card";
+import { PerformanceMetricsCard } from "~/components/system/performance-metrics-card";
+import { ServiceHealthCard } from "~/components/system/service-health-card";
+import { traceAndAuthMiddleware } from "~/middleware/auth-trace.server";
+import { systemService } from "~/services/system.service";
+
+export const middleware = [traceAndAuthMiddleware];
+
+export async function loader(_args: Route.LoaderArgs) {
+  const overview = await systemService.getSystemOverview();
+
+  return {
+    health: overview.health,
+    readiness: overview.readiness,
+    rawMetrics: overview.rawMetrics,
+  };
+}
+
+export default function SystemStatusRoute() {
+  const { health, readiness, rawMetrics } = useLoaderData<typeof loader>();
+
+  return (
+    <div className="space-y-6 max-w-7xl mx-auto pb-12">
+      <div>
+        <h1 className="text-xl font-bold tracking-tight">
+          Giám Sát Vận Hành Hệ Thống (Observability)
+        </h1>
+        <p className="text-xs text-muted-foreground mt-0.5">
+          Theo dõi trực tiếp Liveness/Readiness probes, PostgreSQL Connection
+          Pool và Prometheus Metrics
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <ServiceHealthCard health={health} readiness={readiness} />
+        <DbPoolMetricsCard
+          poolTotal={readiness?.checks?.poolTotal ?? 10}
+          poolIdle={readiness?.checks?.poolIdle ?? 8}
+          poolWaiting={readiness?.checks?.poolWaiting ?? 0}
+        />
+      </div>
+
+      <PerformanceMetricsCard rawMetricsText={rawMetrics} />
+    </div>
+  );
+}

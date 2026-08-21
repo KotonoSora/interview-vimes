@@ -1,0 +1,22 @@
+# Ignore everything
+**
+
+# Allow specific files within root
+!package.json
+!vite.config.ts
+!README.md
+!tsconfig.json
+!react-router.config.ts
+!.lintstagedrc.mjs
+
+# Allow folder .vscode
+!.vscode/
+!.vscode/*.code-snippets
+
+# Allow folder source
+!app/
+!app/**
+app/components/ui/
+app/components/ui/**
+app/app.css
+app/lib/utils.ts

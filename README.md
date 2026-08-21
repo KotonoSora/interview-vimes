@@ -1,34 +1,54 @@
-# Interview Vimes
 
-## Timeline
+# Vimes Technical Assignment
 
-- [x] 2026-08-17 Receive home inspection assignment via email.
-- [x] 2026-08-18 Start researching and writing documents with Gemini AI.
-- [x] 2026-08-19 Relearning Express.js with Gemini AI.
-- [x] 2026-08-20 Start writing the source code.
-- [ ] 2026-08-21 Self-check and push source code to GitHub. Submit assignment by send email to <huyen.vimes@gmail.com>
+Project submission for the Vimes engineering assessment, covering database architecture, full-stack implementation, automated testing, and containerized deployment.
 
-## Assignment Requirement
+---
 
-- [README.md](./assignment-requirement/README.md)
-    1. Thiết kết cấu trúc các bảng cơ sở dữ liệu để lưu trữ.
-    2. Thiết kế giao diện nhập liệu.
-    3. Viết chương trình cho phép nhập liệu và lưu dữ liệu vào bảng.
-    4. Viết unittest.
-- [README.pdf](./assignment-requirement/README.pdf)
-- [Laws and Rules](./assignment-requirement/laws-and-rules.md)
+## Project Timeline
 
-## Resolve
+- [x] **2026-08-17**: Received the take-home technical assessment via email.
+- [x] **2026-08-18**: Analyzed domain rules, technical requirements, and architectural planning with Gemini AI.
+- [x] **2026-08-19**: Reviewed Express.js modern patterns and project structure best practices.
+- [x] **2026-08-20**: Implemented database schemas, backend APIs, and frontend user interfaces.
+- [x] **2026-08-21**: Conducted QA checks, finalized test coverage, and submitted the project to <huyen.vimes@gmail.com>.
 
-1. Thiết kết cấu trúc các bảng cơ sở dữ liệu để lưu trữ.
-    - [Database Entity Relation Diagram](./docs/database-entity-relation-diagram.md)
-    - [Database Design](./docs/database-design.md)
-    - [Database SQL Schema](./sql/01_schema.sql)
-    - [Database SQL Seed](./sql/02_seed.sql)
-    - [Database SQL Security Roles](./sql/03_security_roles.sql)
-2. Thiết kế giao diện nhập liệu.
-3. Viết chương trình cho phép nhập liệu và lưu dữ liệu vào bảng.
-    - [Docker](./docker/README.md)
-    - [Backend](./backend/README.md)
-4. Viết unittest.
-    - [Unit Test](./docs//tdd-and-unit-test.md)
+---
+
+## Assignment Requirements
+
+Reference materials provided for the assessment:
+
+- [Project Specification (README.md)](./assignment-requirement/README.md)
+  1. Design normalized relational database schemas for data persistence.
+  2. Implement a responsive user interface for data entry.
+  3. Build full-stack workflows to process, validate, and persist submitted records.
+  4. Write comprehensive automated test suites.
+- [Specification PDF](./assignment-requirement/README.pdf)
+- [Domain Rules & Compliance Constraints](./assignment-requirement/laws-and-rules.md)
+
+---
+
+## Solution Deliverables
+
+### 1. Database Architecture & Schema Design
+
+- [Entity-Relationship Diagram (ERD)](./docs/database-entity-relation-diagram.md)
+- [Database Technical Specification](./docs/database-design.md)
+- [DDL Schema Script (`01_schema.sql`)](./sql/01_schema.sql)
+- [Seed Data Script (`02_seed.sql`)](./sql/02_seed.sql)
+- [Database Security & RBAC Configuration (`03_security_roles.sql`)](./sql/03_security_roles.sql)
+
+### 2. User Interface
+
+- [Frontend Service Documentation](./frontend/README.md)
+
+### 3. Application Services & Orchestration
+
+- [Docker Infrastructure & Reverse Proxy](./docker/README.md)
+- [Backend REST API Service](./backend/README.md)
+- [Frontend Web Application](./frontend/README.md)
+
+### 4. Quality Assurance & Automated Testing
+
+- [TDD Methodology & Unit Testing Documentation](./docs/tdd-and-unit-test.md)

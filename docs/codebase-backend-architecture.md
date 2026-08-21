@@ -1143,13 +1143,13 @@ Bash
 
 ```Bash
 # Kiểm tra Liveness tiến trình Backend
-curl -i http://localhost/healthz
+curl -i http://localhost:8080/healthz
 
 # Kiểm tra Readiness kết nối CSDL và Connection Pool
-curl -i http://localhost/ready
+curl -i http://localhost:8080/ready
 
 # Xem Metrics Prometheus thời gian thực
-curl -i http://localhost/metrics
+curl -i http://localhost:8080/metrics
 ```
 
 **3. Chạy bộ kiểm thử tự động TDD & xuất báo cáo Code Coverage:**

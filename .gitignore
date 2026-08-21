@@ -1,4 +1,3 @@
-node_modules/
 # Logs
 logs
 *.log
@@ -42,9 +41,9 @@ dist-ssr
 /storybook-static
 
 # SonarQube
-/.sonar
-/.scannerwork
-/sonar-project.properties
+.sonar
+.scannerwork
+sonar-project.properties
 
 # Vitest
 coverage/
@@ -57,12 +56,12 @@ yarn.lock
 bun.lockb
 bun.lock
 .env
-.env.test
+.env.*
 .dev.vars
 
 # React Router
-/.react-router/
-/build/
+.react-router
+build
 
 # Cloudflare
 .mf
@@ -70,7 +69,6 @@ bun.lock
 .dev.vars*
 worker-configuration.d.ts
 
-
 !.dev.vars.example
 !.env.example
-/workers/**/*.js
+workers/**/*.js
