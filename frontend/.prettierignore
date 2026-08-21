@@ -3,9 +3,10 @@
 
 # Allow specific files within root
 !package.json
-!vitest.config.ts
+!vite.config.ts
 !README.md
 !tsconfig.json
+!react-router.config.ts
 !.lintstagedrc.mjs
 
 # Allow folder .vscode
@@ -13,7 +14,9 @@
 !.vscode/*.code-snippets
 
 # Allow folder source
-!src/
-!src/**
-!tests/
-!tests/**
+!app/
+!app/**
+app/components/ui/
+app/components/ui/**
+app/app.css
+app/lib/utils.ts
