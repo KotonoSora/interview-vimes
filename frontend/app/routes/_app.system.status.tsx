@@ -49,13 +49,7 @@ export async function loader({ context }: Route.LoaderArgs) {
 export default function SystemStatusRoute() {
   const { health, readiness, metricsText } = useLoaderData<typeof loader>();
   return (
-    <div className="space-y-4 max-w-7xl mx-auto px-2 sm:px-4">
-      <div>
-        <h1 className="text-lg font-bold">Giám Sát & Vận Hành Hệ Thống</h1>
-        <p className="text-xs text-muted-foreground">
-          Theo dõi Liveness Probe, PostgreSQL Pool và Prometheus Metrics
-        </p>
-      </div>
+    <div className="space-y-4 max-w-7xl mx-auto">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <ServiceHealthCard health={health} />
         <DbPoolMetricsCard readiness={readiness} />

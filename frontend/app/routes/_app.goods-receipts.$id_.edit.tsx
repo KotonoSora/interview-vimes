@@ -1,56 +1,30 @@
-import {
-  AlertCircle,
-  ArrowLeft,
-  FileSpreadsheet,
-  Loader2,
-  Save,
-} from "lucide-react";
-import { useEffect, useState } from "react";
-import { data, useFetcher, useLoaderData, useNavigate } from "react-router";
-import { z } from "zod";
-
+import { useState, useEffect } from "react";
+import { useLoaderData, useFetcher, useNavigate, data } from "react-router";
 import type { Route } from "./+types/_app.goods-receipts.$id_.edit";
-
-import type { ReceiptItemRow } from "~/components/goods-receipt/receipt-items-table";
-import type { UpdateGoodsReceiptRequest } from "~/types/goods-receipt.types";
-
-import { ReceiptItemsTable } from "~/components/goods-receipt/receipt-items-table";
-import { Button } from "~/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
-import { Input } from "~/components/ui/input";
-import { Label } from "~/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "~/components/ui/select";
-import { toast } from "~/components/ui/toast";
-import { RECEIPT_TYPE_LABELS } from "~/constants/receipt.constants";
-import { convertNumberToVietnameseWords } from "~/lib/number-to-words";
-import {
-  requestIdContext,
-  traceAndAuthMiddleware,
-} from "~/middleware/auth-trace.server";
+import { z } from "zod";
+import { requestIdContext, traceAndAuthMiddleware } from "~/middleware/auth-trace.server";
 import { masterDataService } from "~/services/master-data.service";
 import { receiptService } from "~/services/receipt.service";
-import { UpdateGoodsReceiptSchema } from "~/types/goods-receipt.types";
+import { UpdateGoodsReceiptSchema, type UpdateGoodsReceiptRequest } from "~/types/goods-receipt.types";
+import { RECEIPT_TYPE_LABELS } from "~/constants/receipt.constants";
+import { ReceiptItemsTable, type ReceiptItemRow } from "~/components/goods-receipt/receipt-items-table";
+import { convertNumberToVietnameseWords } from "~/lib/number-to-words";
+import { DatePicker } from "~/components/ui/date-picker";
+import { Button } from "~/components/ui/button";
+import { Input } from "~/components/ui/input";
+import { Label } from "~/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
+import { toast } from "~/components/ui/toast";
+import { ArrowLeft, Save, Loader2, FileSpreadsheet, AlertCircle } from "lucide-react";
 
 export function meta({ matches }: Route.MetaArgs) {
-  const match = matches?.find(
-    (m) => m?.id === "routes/_app.goods-receipts.$id_.edit",
-  );
-  const d = (match && "loaderData" in match ? match.loaderData : undefined) as
-    { receipt?: { receiptNumber?: string } } | undefined;
+  const match = matches?.find((m) => m?.id === "routes/_app.goods-receipts.$id_.edit");
+  const d = (match && "loaderData" in match ? match.loaderData : undefined) as { receipt?: { receiptNumber?: string } } | undefined;
   const number = d?.receipt?.receiptNumber || "Chứng Từ";
   return [
     { title: `Chỉnh Sửa ${number} | VIMES Inventory` },
-    {
-      name: "description",
-      content:
-        "Cập nhật thông tin chứng từ và điều chỉnh số lượng vật tư nhập kho.",
-    },
+    { name: "description", content: "Cập nhật thông tin chứng từ và điều chỉnh số lượng vật tư nhập kho." },
   ];
 }
 
@@ -68,12 +42,8 @@ export async function loader({ params, context }: Route.LoaderArgs) {
     masterDataService.getProducts(undefined, requestId),
   ]);
 
-  if (!receiptRes.data)
-    throw new Response("Chứng từ không tồn tại", { status: 404 });
-  if (receiptRes.data.status === "CANCELLED")
-    throw new Response("Không thể chỉnh sửa phiếu đã ở trạng thái CANCELLED", {
-      status: 422,
-    });
+  if (!receiptRes.data) throw new Response("Chứng từ không tồn tại", { status: 404 });
+  if (receiptRes.data.status === "CANCELLED") throw new Response("Không thể chỉnh sửa phiếu đã ở trạng thái CANCELLED", { status: 422 });
 
   return {
     receipt: receiptRes.data,
@@ -86,11 +56,7 @@ export async function loader({ params, context }: Route.LoaderArgs) {
 export async function action({ request, params, context }: Route.ActionArgs) {
   const requestId = context.get(requestIdContext) || crypto.randomUUID();
   const id = params.id;
-  if (!id)
-    return data(
-      { success: false, message: "Mã chứng từ không hợp lệ" },
-      { status: 400 },
-    );
+  if (!id) return data({ success: false, message: "Mã chứng từ không hợp lệ" }, { status: 400 });
 
   try {
     const rawData = await request.json();
@@ -98,80 +64,57 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     await receiptService.updateReceipt(id, parsedData, requestId);
     return data({ success: true, message: "Cập nhật chứng từ thành công" });
   } catch (error: unknown) {
-    console.error("❌ Lỗi Action Edit Receipt:", error);
     if (error instanceof z.ZodError) {
-      const issueMsgs = error.issues
-        .map((i) => `${i.path.join(".")}: ${i.message}`)
-        .join("; ");
-      return data(
-        { success: false, message: `Lỗi xác thực dữ liệu: ${issueMsgs}` },
-        { status: 400 },
-      );
+      const issueMsgs = error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join("; ");
+      return data({ success: false, message: `Lỗi xác thực: ${issueMsgs}` }, { status: 400 });
     }
-    const message =
-      error instanceof Error ? error.message : "Không thể cập nhật chứng từ";
+    const message = error instanceof Error ? error.message : "Không thể cập nhật chứng từ";
     return data({ success: false, message }, { status: 400 });
   }
 }
 
 export default function EditGoodsReceiptRoute() {
-  const { receipt, organizations, warehouses, products } =
-    useLoaderData<typeof loader>();
+  const { receipt, organizations, warehouses, products } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
   const navigate = useNavigate();
 
   const [organizationId, setOrganizationId] = useState(
-    receipt.organizationId ||
-      receipt.organization?.id ||
-      organizations[0]?.id ||
-      "",
+    receipt.organizationId || receipt.organization?.id || organizations[0]?.id || ""
   );
   const [warehouseId, setWarehouseId] = useState(
-    receipt.warehouseId || receipt.warehouse?.id || warehouses[0]?.id || "",
+    receipt.warehouseId || receipt.warehouse?.id || warehouses[0]?.id || ""
   );
-  const [receiptDate, setReceiptDate] = useState(
-    receipt.receiptDate || new Date().toISOString().split("T")[0],
+  const [receiptDate, setReceiptDate] = useState(receipt.receiptDate || new Date().toISOString().split("T")[0]);
+  const [receiptType, setReceiptType] = useState<UpdateGoodsReceiptRequest["receiptType"]>(
+    receipt.receiptType || "PURCHASE"
   );
-  const [receiptType, setReceiptType] = useState<
-    UpdateGoodsReceiptRequest["receiptType"]
-  >(receipt.receiptType || "PURCHASE");
-  const [delivererName, setDelivererName] = useState(
-    receipt.delivererName || "",
-  );
+  const [delivererName, setDelivererName] = useState(receipt.delivererName || "");
   const [docReference, setDocReference] = useState(receipt.docReference || "");
   const [docDate, setDocDate] = useState(receipt.docDate || "");
   const [docOrigin, setDocOrigin] = useState(receipt.docOrigin || "");
   const [description, setDescription] = useState(receipt.description || "");
-  const [debitAccount, setDebitAccount] = useState(
-    receipt.debitAccount || "152",
-  );
-  const [creditAccount, setCreditAccount] = useState(
-    receipt.creditAccount || "331",
-  );
+  const [debitAccount, setDebitAccount] = useState(receipt.debitAccount || "152");
+  const [creditAccount, setCreditAccount] = useState(receipt.creditAccount || "331");
 
-  // Nạp danh sách dòng hàng có thể chỉnh sửa
   const [items, setItems] = useState<ReceiptItemRow[]>(() => {
     const rawItems = receipt.items || [];
     if (rawItems.length === 0) {
       const p = products[0];
-      return [
-        {
-          productId: p?.id || "",
-          productNameSnapshot: p?.name || "Vật tư",
-          unitSnapshot: p?.unit || "Cái",
-          docQty: 1,
-          actualQty: 1,
-          unitPrice: p?.defaultPrice || 0,
-          debitAccount: "152",
-          creditAccount: "331",
-          note: "",
-        },
-      ];
+      return [{
+        productId: p?.id || "",
+        productNameSnapshot: p?.name || "Vật tư",
+        unitSnapshot: p?.unit || "Cái",
+        docQty: 1,
+        actualQty: 1,
+        unitPrice: p?.defaultPrice || 0,
+        debitAccount: "152",
+        creditAccount: "331",
+        note: "",
+      }];
     }
     return rawItems.map((i) => ({
       productId: i.productId || products[0]?.id || "",
-      productNameSnapshot:
-        i.productNameSnapshot || i.productName || products[0]?.name || "Vật tư",
+      productNameSnapshot: i.productNameSnapshot || i.productName || products[0]?.name || "Vật tư",
       unitSnapshot: i.unitSnapshot || i.unit || products[0]?.unit || "Cái",
       docQty: Number(i.docQty) || 0,
       actualQty: Number(i.actualQty) || 0,
@@ -182,27 +125,16 @@ export default function EditGoodsReceiptRoute() {
     }));
   });
 
-  const totalAmount = items.reduce(
-    (acc, it) => acc + Number(it.actualQty || 0) * Number(it.unitPrice || 0),
-    0,
-  );
+  const totalAmount = items.reduce((acc, it) => acc + Number(it.actualQty || 0) * Number(it.unitPrice || 0), 0);
   const totalAmountWords = convertNumberToVietnameseWords(totalAmount);
 
   useEffect(() => {
     if (!fetcher.data) return;
     if (fetcher.data.success) {
-      toast.add({
-        type: "success",
-        title: "Thành công",
-        description: "Chứng từ đã được cập nhật.",
-      });
+      toast.add({ type: "success", title: "Thành công", description: "Chứng từ đã được cập nhật." });
       navigate(`/goods-receipts/${receipt.id}`);
     } else {
-      toast.add({
-        type: "error",
-        title: "Lỗi lưu dữ liệu",
-        description: fetcher.data.message || "Vui lòng kiểm tra lại.",
-      });
+      toast.add({ type: "error", title: "Lỗi lưu dữ liệu", description: fetcher.data.message || "Vui lòng kiểm tra lại." });
     }
   }, [fetcher.data, navigate, receipt.id]);
 
@@ -212,11 +144,7 @@ export default function EditGoodsReceiptRoute() {
     const finalDeliverer = delivererName.trim() || "Người giao hàng";
 
     if (!finalOrgId || !finalWhId) {
-      toast.add({
-        type: "error",
-        title: "Thiếu thông tin",
-        description: "Vui lòng chọn Đơn vị và Kho tiếp nhận.",
-      });
+      toast.add({ type: "error", title: "Thiếu thông tin", description: "Vui lòng chọn Đơn vị và Kho tiếp nhận." });
       return;
     }
 
@@ -247,17 +175,13 @@ export default function EditGoodsReceiptRoute() {
       })),
     };
 
-    fetcher.submit(payload as any, {
-      method: "POST",
-      encType: "application/json",
-    });
+    fetcher.submit(payload as any, { method: "POST", encType: "application/json" });
   };
 
-  const isSubmitting =
-    fetcher.state === "submitting" || fetcher.state === "loading";
+  const isSubmitting = fetcher.state === "submitting" || fetcher.state === "loading";
 
   return (
-    <div className="space-y-4 max-w-6xl mx-auto pb-12 px-2 sm:px-4">
+    <div className="space-y-4 max-w-6xl mx-auto pb-12">
       {fetcher.data && !fetcher.data.success && (
         <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-lg flex items-start gap-2 text-xs text-destructive">
           <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
@@ -268,170 +192,77 @@ export default function EditGoodsReceiptRoute() {
         </div>
       )}
 
-      {/* Header toolbar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b">
-        <div className="flex items-center gap-3">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => navigate(-1)}
-            className="h-8 w-8"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div>
-            <h1 className="text-lg font-bold">
-              Chỉnh Sửa Chứng Từ: {receipt.receiptNumber}
-            </h1>
-            <p className="text-xs text-muted-foreground">
-              Mẫu số 01 - VT theo TT 200/2014/TT-BTC
-            </p>
-          </div>
-        </div>
-        <Button
-          size="sm"
-          type="button"
-          onClick={handleUpdate}
-          disabled={isSubmitting}
-          className="h-8 text-xs"
-        >
-          {isSubmitting ? (
-            <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-          ) : (
-            <Save className="h-3.5 w-3.5 mr-1.5" />
-          )}
+      <div className="flex flex-row items-center justify-between gap-3 pb-2 border-b">
+        <Button variant="outline" size="sm" onClick={() => navigate(-1)} className="h-8 text-xs">
+          <ArrowLeft className="h-3.5 w-3.5 mr-1.5" /> Quay lại
+        </Button>
+        <Button size="sm" type="button" onClick={handleUpdate} disabled={isSubmitting} className="h-8 text-xs">
+          {isSubmitting ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Save className="h-3.5 w-3.5 mr-1.5" />}
           {isSubmitting ? "Đang lưu..." : "Lưu Thay Đổi"}
         </Button>
       </div>
 
-      {/* Form Input Chỉnh Sửa Thông Tin Chung */}
       <Card>
         <CardHeader className="py-2.5 px-4 border-b">
           <CardTitle className="text-xs font-semibold uppercase text-muted-foreground flex items-center gap-1.5">
-            <FileSpreadsheet className="h-4 w-4 text-primary" /> Thông tin chứng
-            từ
+            <FileSpreadsheet className="h-4 w-4 text-primary" /> Thông tin chứng từ
           </CardTitle>
         </CardHeader>
         <CardContent className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <div className="space-y-1">
             <Label className="text-xs">Số phiếu</Label>
-            <Input
-              value={receipt.receiptNumber}
-              disabled
-              className="h-8 text-xs font-mono bg-muted text-muted-foreground cursor-not-allowed"
-            />
+            <Input value={receipt.receiptNumber} disabled className="h-8 text-xs font-mono bg-muted text-muted-foreground cursor-not-allowed" />
           </div>
           <div className="space-y-1">
             <Label className="text-xs">Ngày lập *</Label>
-            <Input
-              type="date"
-              value={receiptDate}
-              onChange={(e) => setReceiptDate(e.target.value)}
-              className="h-8 text-xs"
-            />
+            <DatePicker value={receiptDate} onChange={(val) => setReceiptDate(val || "")} className="w-full" />
           </div>
           <div className="space-y-1">
             <Label className="text-xs">Đơn vị chủ quản *</Label>
-            <Select
-              value={organizationId}
-              onValueChange={(val) => val && setOrganizationId(val)}
-            >
-              <SelectTrigger className="h-8 text-xs">
-                <SelectValue placeholder="Chọn đơn vị" />
-              </SelectTrigger>
-              <SelectContent>
-                {organizations.map((org) => (
-                  <SelectItem key={org.id} value={org.id} className="text-xs">
-                    {org.name}
-                  </SelectItem>
-                ))}
+            <Select value={organizationId} onValueChange={(val: string | null) => val && setOrganizationId(val)}>
+              <SelectTrigger className="h-8 text-xs w-full"><SelectValue placeholder="Chọn đơn vị" /></SelectTrigger>
+              <SelectContent className="min-w-[280px]">
+                {organizations.map((org) => <SelectItem key={org.id} value={org.id} className="text-xs">{org.name}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
           <div className="space-y-1">
             <Label className="text-xs">Kho tiếp nhận *</Label>
-            <Select
-              value={warehouseId}
-              onValueChange={(val) => val && setWarehouseId(val)}
-            >
-              <SelectTrigger className="h-8 text-xs">
-                <SelectValue placeholder="Chọn kho" />
-              </SelectTrigger>
-              <SelectContent>
-                {warehouses.map((wh) => (
-                  <SelectItem key={wh.id} value={wh.id} className="text-xs">
-                    {wh.name}
-                  </SelectItem>
-                ))}
+            <Select value={warehouseId} onValueChange={(val: string | null) => val && setWarehouseId(val)}>
+              <SelectTrigger className="h-8 text-xs w-full"><SelectValue placeholder="Chọn kho" /></SelectTrigger>
+              <SelectContent className="min-w-[280px]">
+                {warehouses.map((wh) => <SelectItem key={wh.id} value={wh.id} className="text-xs">{wh.name}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
           <div className="space-y-1">
             <Label className="text-xs">Người giao hàng *</Label>
-            <Input
-              value={delivererName}
-              onChange={(e) => setDelivererName(e.target.value)}
-              placeholder="Tên người giao"
-              className="h-8 text-xs"
-            />
+            <Input value={delivererName} onChange={(e) => setDelivererName(e.target.value)} placeholder="Tên người giao" className="h-8 text-xs" />
           </div>
           <div className="space-y-1">
             <Label className="text-xs">Số chứng từ gốc</Label>
-            <Input
-              value={docReference}
-              onChange={(e) => setDocReference(e.target.value)}
-              placeholder="HĐ, Lệnh..."
-              className="h-8 text-xs"
-            />
+            <Input value={docReference} onChange={(e) => setDocReference(e.target.value)} placeholder="HĐ, Lệnh..." className="h-8 text-xs" />
           </div>
           <div className="space-y-1">
             <Label className="text-xs">Loại nghiệp vụ</Label>
-            <Select
-              value={receiptType}
-              onValueChange={(val) =>
-                val &&
-                setReceiptType(val as UpdateGoodsReceiptRequest["receiptType"])
-              }
-            >
-              <SelectTrigger className="h-8 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {Object.entries(RECEIPT_TYPE_LABELS).map(([k, v]) => (
-                  <SelectItem key={k} value={k} className="text-xs">
-                    {v}
-                  </SelectItem>
-                ))}
+            <Select value={receiptType} onValueChange={(val: string | null) => val && setReceiptType(val as UpdateGoodsReceiptRequest["receiptType"])}>
+              <SelectTrigger className="h-8 text-xs w-full"><SelectValue /></SelectTrigger>
+              <SelectContent className="min-w-[240px]">
+                {Object.entries(RECEIPT_TYPE_LABELS).map(([k, v]) => <SelectItem key={k} value={k} className="text-xs">{v}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
           <div className="space-y-1">
             <Label className="text-xs">Định khoản (Nợ / Có)</Label>
             <div className="grid grid-cols-2 gap-2">
-              <Input
-                value={debitAccount}
-                onChange={(e) => setDebitAccount(e.target.value)}
-                placeholder="152"
-                className="h-8 text-xs font-mono"
-              />
-              <Input
-                value={creditAccount}
-                onChange={(e) => setCreditAccount(e.target.value)}
-                placeholder="331"
-                className="h-8 text-xs font-mono"
-              />
+              <Input value={debitAccount} onChange={(e) => setDebitAccount(e.target.value)} placeholder="152" className="h-8 text-xs font-mono" />
+              <Input value={creditAccount} onChange={(e) => setCreditAccount(e.target.value)} placeholder="331" className="h-8 text-xs font-mono" />
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Bảng Dòng Vật Tư Cho Phép Sửa/Thêm/Xóa/Đổi Vật Tư */}
-      <ReceiptItemsTable
-        items={items}
-        setItems={setItems}
-        products={products}
-        totalAmountWords={totalAmountWords}
-      />
+      <ReceiptItemsTable items={items} setItems={setItems} products={products} totalAmountWords={totalAmountWords} />
     </div>
   );
 }

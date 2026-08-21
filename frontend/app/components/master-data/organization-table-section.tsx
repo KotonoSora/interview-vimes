@@ -1,52 +1,55 @@
+import { useMemo } from "react";
+
+import type { ColumnDef } from "~/components/data-table/data-table";
 import type { MasterOrganization } from "~/services/master-data.service";
 
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "~/components/ui/table";
+import { DataTable } from "~/components/data-table/data-table";
+import { DataTableColumnHeader } from "~/components/data-table/data-table-column-header";
 
 export function OrganizationTableSection({
   organizations = [],
 }: {
   organizations: MasterOrganization[];
 }) {
-  return (
-    <Table>
-      <TableHeader>
-        <TableRow className="bg-muted/40 text-xs">
-          <TableHead className="w-32">Mã</TableHead>
-          <TableHead className="w-64">Tên đơn vị</TableHead>
-          <TableHead>Bộ phận</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {organizations.length === 0 ? (
-          <TableRow>
-            <TableCell
-              colSpan={3}
-              className="h-24 text-center text-xs text-muted-foreground"
-            >
-              Không có dữ liệu.
-            </TableCell>
-          </TableRow>
-        ) : (
-          organizations.map((o) => (
-            <TableRow key={o.id} className="text-xs">
-              <TableCell className="font-mono font-semibold text-primary">
-                {o.code || o.id.slice(0, 8)}
-              </TableCell>
-              <TableCell className="font-medium">{o.name}</TableCell>
-              <TableCell className="text-muted-foreground">
-                {o.department || "—"}
-              </TableCell>
-            </TableRow>
-          ))
-        )}
-      </TableBody>
-    </Table>
+  const columns: ColumnDef<MasterOrganization>[] = useMemo(
+    () => [
+      {
+        accessorKey: "code",
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Mã đơn vị" />
+        ),
+        cell: ({ row }) => (
+          <span className="font-mono font-semibold text-primary">
+            {row.original.code || row.original.id.slice(0, 8)}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "name",
+        header: ({ column }) => (
+          <DataTableColumnHeader
+            column={column}
+            title="Tên pháp nhân / Đơn vị"
+          />
+        ),
+        cell: ({ row }) => (
+          <span className="font-medium">{row.original.name}</span>
+        ),
+      },
+      {
+        accessorKey: "department",
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Bộ phận trực thuộc" />
+        ),
+        cell: ({ row }) => (
+          <span className="text-muted-foreground">
+            {row.original.department || "—"}
+          </span>
+        ),
+      },
+    ],
+    [],
   );
+
+  return <DataTable columns={columns} data={organizations} pageSize={15} />;
 }

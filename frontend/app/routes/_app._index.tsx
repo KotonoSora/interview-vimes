@@ -78,19 +78,14 @@ export default function DashboardIndexRoute() {
   const { metrics, recentReceipts } = useLoaderData<typeof loader>();
 
   return (
-    <div className="space-y-5 max-w-7xl mx-auto px-2 sm:px-4">
-      <div className="flex justify-between items-center pb-2 border-b">
-        <div>
-          <h1 className="text-lg font-bold">Tổng Quan Nhập Kho</h1>
-          <p className="text-xs text-muted-foreground">
-            Theo dõi và quản lý dòng luân chuyển vật tư
-          </p>
-        </div>
+    <div className="space-y-4 max-w-7xl mx-auto">
+      {/* Không lặp lại title h1, chỉ có action bar nhanh nếu cần */}
+      <div className="flex justify-end items-center">
         <Link
           to="/goods-receipts/new"
-          className="inline-flex items-center gap-1.5 bg-primary text-primary-foreground px-3 py-1.5 rounded-md text-xs font-medium shadow hover:bg-primary/90 transition-colors"
+          className="inline-flex items-center gap-1.5 bg-primary text-primary-foreground px-3 py-1.5 rounded-md text-xs font-medium shadow hover:bg-primary/90 transition-colors h-8"
         >
-          <Plus className="h-3.5 w-3.5" /> Lập Phiếu
+          <Plus className="h-3.5 w-3.5" /> Lập Phiếu Mới
         </Link>
       </div>
 

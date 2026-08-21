@@ -1,18 +1,13 @@
 import { Search } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useSubmit } from "react-router";
 
+import type { ColumnDef } from "~/components/data-table/data-table";
 import type { MasterProduct } from "~/services/master-data.service";
 
+import { DataTable } from "~/components/data-table/data-table";
+import { DataTableColumnHeader } from "~/components/data-table/data-table-column-header";
 import { Input } from "~/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "~/components/ui/table";
 import { formatCurrencyVND } from "~/lib/formatters";
 
 export function ProductTableSection({
@@ -24,6 +19,61 @@ export function ProductTableSection({
 }) {
   const submit = useSubmit();
   const [searchTerm, setSearchTerm] = useState(initialSearch);
+
+  const columns: ColumnDef<MasterProduct>[] = useMemo(
+    () => [
+      {
+        accessorKey: "code",
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Mã số" />
+        ),
+        cell: ({ row }) => (
+          <span className="font-mono font-semibold text-primary">
+            {row.original.code}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "name",
+        header: ({ column }) => (
+          <DataTableColumnHeader
+            column={column}
+            title="Tên vật tư / Quy cách"
+          />
+        ),
+        cell: ({ row }) => (
+          <span className="font-medium">{row.original.name}</span>
+        ),
+      },
+      {
+        accessorKey: "unit",
+        header: () => <div className="text-center">ĐVT</div>,
+        cell: ({ row }) => (
+          <div className="text-center text-muted-foreground">
+            {row.original.unit}
+          </div>
+        ),
+      },
+      {
+        accessorKey: "defaultPrice",
+        header: ({ column }) => (
+          <div className="text-right">
+            <DataTableColumnHeader
+              column={column}
+              title="Đơn giá chuẩn"
+              className="justify-end"
+            />
+          </div>
+        ),
+        cell: ({ row }) => (
+          <div className="text-right font-mono font-medium">
+            {formatCurrencyVND(row.original.defaultPrice)}
+          </div>
+        ),
+      },
+    ],
+    [],
+  );
 
   return (
     <div className="space-y-3">
@@ -43,48 +93,12 @@ export function ProductTableSection({
               placeholder="Tìm theo mã hoặc tên..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-8 text-xs h-8"
+              className="pl-8 text-xs h-8 bg-background"
             />
           </div>
         </form>
       </div>
-      <Table>
-        <TableHeader>
-          <TableRow className="bg-muted/40 text-xs">
-            <TableHead className="w-28">Mã số</TableHead>
-            <TableHead>Tên vật tư / Quy cách</TableHead>
-            <TableHead className="w-20 text-center">ĐVT</TableHead>
-            <TableHead className="w-36 text-right">Đơn giá chuẩn</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {products.length === 0 ? (
-            <TableRow>
-              <TableCell
-                colSpan={4}
-                className="h-24 text-center text-xs text-muted-foreground"
-              >
-                Không có dữ liệu.
-              </TableCell>
-            </TableRow>
-          ) : (
-            products.map((p) => (
-              <TableRow key={p.id} className="text-xs">
-                <TableCell className="font-mono font-semibold text-primary">
-                  {p.code}
-                </TableCell>
-                <TableCell className="font-medium">{p.name}</TableCell>
-                <TableCell className="text-center text-muted-foreground">
-                  {p.unit}
-                </TableCell>
-                <TableCell className="text-right font-mono">
-                  {formatCurrencyVND(p.defaultPrice)}
-                </TableCell>
-              </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
+      <DataTable columns={columns} data={products} pageSize={15} />
     </div>
   );
 }

@@ -1,22 +1,21 @@
 import { Edit, Eye, FileText, Plus } from "lucide-react";
+import { useMemo } from "react";
 import { Link, useLoaderData } from "react-router";
 
 import type { Route } from "./+types/_app.goods-receipts._index";
 
+import type { ColumnDef } from "~/components/data-table/data-table";
 import type { ReceiptType } from "~/constants/receipt.constants";
-import type { GetReceiptsQuery } from "~/services/receipt.service";
+import type {
+  GetReceiptsQuery,
+  GoodsReceiptListItem,
+} from "~/services/receipt.service";
 
+import { DataTable } from "~/components/data-table/data-table";
+import { DataTableColumnHeader } from "~/components/data-table/data-table-column-header";
 import { ReceiptFilterToolbar } from "~/components/goods-receipt/receipt-filter-toolbar";
 import { Badge } from "~/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "~/components/ui/table";
 import { RECEIPT_TYPE_LABELS } from "~/constants/receipt.constants";
 import { formatCurrencyVND } from "~/lib/formatters";
 import {
@@ -53,11 +52,10 @@ export async function loader({ request, context }: Route.LoaderArgs) {
       : undefined;
   const fromDate = url.searchParams.get("fromDate") || undefined;
   const toDate = url.searchParams.get("toDate") || undefined;
-  const page = Number(url.searchParams.get("page")) || 1;
 
   const [receiptsRes, warehousesRes] = await Promise.all([
     receiptService.getReceipts(
-      { search, warehouseId, status, fromDate, toDate, page, limit: 50 },
+      { search, warehouseId, status, fromDate, toDate, limit: 100 },
       requestId,
     ),
     masterDataService.getWarehouses(requestId),
@@ -65,7 +63,6 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 
   return {
     receipts: receiptsRes.data || [],
-    pagination: receiptsRes.pagination,
     warehouses: warehousesRes.data || [],
     currentFilters: {
       search: search || "",
@@ -81,148 +78,186 @@ export default function GoodsReceiptsIndexRoute() {
   const { receipts, warehouses, currentFilters } =
     useLoaderData<typeof loader>();
 
-  return (
-    <div className="space-y-4 max-w-[1400px] mx-auto px-2 sm:px-4">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b">
-        <div>
-          <h1 className="text-lg font-bold">Sổ Theo Dõi Phiếu Nhập Kho</h1>
-          <p className="text-xs text-muted-foreground">
-            Mẫu số 01 - VT ban hành theo Thông tư 200/2014/TT-BTC
-          </p>
-        </div>
-        <Link
-          to="/goods-receipts/new"
-          className="inline-flex items-center gap-1.5 bg-primary text-primary-foreground px-3 py-1.5 rounded-md text-xs font-medium shadow hover:bg-primary/90"
-        >
-          <Plus className="h-3.5 w-3.5" /> Lập Phiếu Mới
-        </Link>
-      </div>
+  const columns: ColumnDef<GoodsReceiptListItem>[] = useMemo(
+    () => [
+      {
+        accessorKey: "receiptNumber",
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Số phiếu" />
+        ),
+        cell: ({ row }) => (
+          <Link
+            to={`/goods-receipts/${row.original.id}`}
+            className="font-semibold text-primary font-mono hover:underline whitespace-nowrap"
+          >
+            {row.original.receiptNumber}
+          </Link>
+        ),
+      },
+      {
+        accessorKey: "receiptDate",
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Ngày lập" />
+        ),
+        cell: ({ row }) => (
+          <span className="text-muted-foreground whitespace-nowrap">
+            {row.original.receiptDate}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "receiptType",
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Loại nhập" />
+        ),
+        cell: ({ row }) => (
+          <span className="text-muted-foreground whitespace-nowrap">
+            {RECEIPT_TYPE_LABELS[row.original.receiptType as ReceiptType] ||
+              row.original.receiptType ||
+              "Mua ngoài"}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "warehouseName",
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Kho nhập" />
+        ),
+        cell: ({ row }) => (
+          <span className="font-medium whitespace-nowrap">
+            {row.original.warehouseName || row.original.warehouse?.name || "—"}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "delivererName",
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Người giao hàng" />
+        ),
+        cell: ({ row }) => (
+          <span className="whitespace-nowrap">
+            {row.original.delivererName}
+          </span>
+        ),
+      },
+      {
+        id: "accounts",
+        header: () => <div className="text-center">Bút toán</div>,
+        cell: ({ row }) => (
+          <div className="text-center font-mono text-[11px] whitespace-nowrap">
+            <span className="text-blue-600 dark:text-blue-400">
+              N:{row.original.debitAccount || "152"}
+            </span>
+            {" / "}
+            <span className="text-amber-600 dark:text-amber-400">
+              C:{row.original.creditAccount || "331"}
+            </span>
+          </div>
+        ),
+      },
+      {
+        accessorKey: "totalAmount",
+        header: ({ column }) => (
+          <div className="text-right">
+            <DataTableColumnHeader
+              column={column}
+              title="Tổng tiền"
+              className="justify-end"
+            />
+          </div>
+        ),
+        cell: ({ row }) => (
+          <div className="text-right font-mono font-semibold whitespace-nowrap text-foreground">
+            {formatCurrencyVND(row.original.totalAmount || 0)}
+          </div>
+        ),
+      },
+      {
+        accessorKey: "status",
+        header: ({ column }) => (
+          <div className="text-center">
+            <DataTableColumnHeader
+              column={column}
+              title="Trạng thái"
+              className="justify-center"
+            />
+          </div>
+        ),
+        cell: ({ row }) => {
+          const status = row.original.status;
+          return (
+            <div className="text-center whitespace-nowrap">
+              <Badge
+                variant={
+                  status === "CONFIRMED"
+                    ? "default"
+                    : status === "DRAFT"
+                      ? "secondary"
+                      : "destructive"
+                }
+                className="text-[10px] px-2 py-0.5"
+              >
+                {status === "CONFIRMED"
+                  ? "Đã nhập"
+                  : status === "DRAFT"
+                    ? "Nháp"
+                    : "Đã hủy"}
+              </Badge>
+            </div>
+          );
+        },
+      },
+      {
+        id: "actions",
+        header: () => <div className="text-center">Thao tác</div>,
+        cell: ({ row }) => (
+          <div className="flex items-center justify-center gap-1">
+            <Link
+              to={`/goods-receipts/${row.original.id}`}
+              title="Xem chi tiết & In"
+              className="p-1 text-muted-foreground hover:text-foreground rounded hover:bg-muted"
+            >
+              <Eye className="h-3.5 w-3.5" />
+            </Link>
+            {row.original.status !== "CANCELLED" && (
+              <Link
+                to={`/goods-receipts/${row.original.id}/edit`}
+                title="Chỉnh sửa"
+                className="p-1 text-muted-foreground hover:text-foreground rounded hover:bg-muted"
+              >
+                <Edit className="h-3.5 w-3.5" />
+              </Link>
+            )}
+          </div>
+        ),
+      },
+    ],
+    [],
+  );
 
+  return (
+    <div className="space-y-3 max-w-[1500px] mx-auto">
       <ReceiptFilterToolbar
         warehouses={warehouses}
         currentFilters={currentFilters}
       />
 
-      <Card>
-        <CardHeader className="py-2.5 px-4 border-b flex flex-row items-center justify-between">
-          <CardTitle className="text-xs font-semibold flex items-center gap-2">
-            <FileText className="h-4 w-4 text-primary" /> Danh Sách Chứng Từ (
-            {receipts.length})
+      <Card className="shadow-sm border">
+        <CardHeader className="py-2.5 px-4 border-b flex flex-row items-center justify-between bg-card">
+          <CardTitle className="text-xs font-semibold flex items-center gap-2 text-foreground">
+            <FileText className="h-4 w-4 text-primary" />
+            Danh Sách Chứng Từ ({receipts.length})
           </CardTitle>
+          <Link
+            to="/goods-receipts/new"
+            className="inline-flex items-center gap-1.5 bg-primary text-primary-foreground px-3 py-1 rounded text-xs font-medium shadow-sm hover:bg-primary/90 transition-colors h-7"
+          >
+            <Plus className="h-3.5 w-3.5" /> Lập Phiếu Mới
+          </Link>
         </CardHeader>
-        <CardContent className="p-0 overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-muted/40 text-xs">
-                <TableHead className="w-32 font-semibold">Số phiếu</TableHead>
-                <TableHead className="w-24 font-semibold">Ngày lập</TableHead>
-                <TableHead className="w-28 font-semibold">Loại nhập</TableHead>
-                <TableHead className="font-semibold">Kho nhập</TableHead>
-                <TableHead className="font-semibold">Người giao</TableHead>
-                <TableHead className="w-28 font-semibold text-center">
-                  Bút toán
-                </TableHead>
-                <TableHead className="w-32 font-semibold text-right">
-                  Tổng tiền
-                </TableHead>
-                <TableHead className="w-24 font-semibold text-center">
-                  Trạng thái
-                </TableHead>
-                <TableHead className="w-20 text-center font-semibold">
-                  Thao tác
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {receipts.length === 0 ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={9}
-                    className="h-28 text-center text-xs text-muted-foreground"
-                  >
-                    Không có chứng từ nào được ghi nhận.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                receipts.map((r) => (
-                  <TableRow key={r.id} className="text-xs hover:bg-muted/20">
-                    <TableCell className="font-semibold text-primary font-mono whitespace-nowrap">
-                      <Link
-                        to={`/goods-receipts/${r.id}`}
-                        className="hover:underline"
-                      >
-                        {r.receiptNumber}
-                      </Link>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground whitespace-nowrap">
-                      {r.receiptDate}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground whitespace-nowrap">
-                      {RECEIPT_TYPE_LABELS[r.receiptType as ReceiptType] ||
-                        r.receiptType ||
-                        "Mua ngoài"}
-                    </TableCell>
-                    <TableCell className="font-medium whitespace-nowrap">
-                      {r.warehouseName || r.warehouse?.name || "—"}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {r.delivererName}
-                    </TableCell>
-                    <TableCell className="text-center font-mono text-[11px] whitespace-nowrap">
-                      <span className="text-blue-600 dark:text-blue-400">
-                        N:{r.debitAccount || "152"}
-                      </span>
-                      {" / "}
-                      <span className="text-amber-600 dark:text-amber-400">
-                        C:{r.creditAccount || "331"}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right font-mono font-semibold whitespace-nowrap">
-                      {formatCurrencyVND(r.totalAmount || 0)}
-                    </TableCell>
-                    <TableCell className="text-center whitespace-nowrap">
-                      <Badge
-                        variant={
-                          r.status === "CONFIRMED"
-                            ? "default"
-                            : r.status === "DRAFT"
-                              ? "secondary"
-                              : "destructive"
-                        }
-                        className="text-[10px]"
-                      >
-                        {r.status === "CONFIRMED"
-                          ? "Đã nhập"
-                          : r.status === "DRAFT"
-                            ? "Nháp"
-                            : "Đã hủy"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-center whitespace-nowrap">
-                      <div className="flex items-center justify-center gap-1">
-                        <Link
-                          to={`/goods-receipts/${r.id}`}
-                          title="Xem chi tiết"
-                          className="p-1.5 text-muted-foreground hover:text-foreground rounded hover:bg-muted"
-                        >
-                          <Eye className="h-3.5 w-3.5" />
-                        </Link>
-                        {r.status !== "CANCELLED" && (
-                          <Link
-                            to={`/goods-receipts/${r.id}/edit`}
-                            title="Chỉnh sửa"
-                            className="p-1.5 text-muted-foreground hover:text-foreground rounded hover:bg-muted"
-                          >
-                            <Edit className="h-3.5 w-3.5" />
-                          </Link>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+
+        <CardContent className="p-0">
+          <DataTable columns={columns} data={receipts} pageSize={20} />
         </CardContent>
       </Card>
     </div>

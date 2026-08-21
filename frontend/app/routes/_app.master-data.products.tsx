@@ -35,18 +35,12 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 export default function MasterDataProductsRoute() {
   const { products, currentSearch } = useLoaderData<typeof loader>();
   return (
-    <div className="space-y-4 max-w-7xl mx-auto px-2 sm:px-4">
-      <div>
-        <h1 className="text-lg font-bold">Danh Mục Vật Tư & Hàng Hóa</h1>
-        <p className="text-xs text-muted-foreground">
-          Catalog phục vụ tự động điền đơn giá và quy cách khi lập phiếu
-        </p>
-      </div>
+    <div className="space-y-4 max-w-7xl mx-auto">
       <Card>
         <CardHeader className="py-2.5 px-4 border-b">
           <CardTitle className="text-xs font-semibold flex items-center gap-2">
-            <Package className="h-4 w-4 text-primary" /> Danh Sách Vật Tư (
-            {products.length})
+            <Package className="h-4 w-4 text-primary" /> Danh Sách Vật Tư & Quy
+            Cách ({products.length})
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
