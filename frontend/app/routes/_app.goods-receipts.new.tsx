@@ -5,7 +5,7 @@ import { data, useFetcher, useLoaderData, useNavigate } from "react-router";
 import type { Route } from "./+types/_app.goods-receipts.new";
 
 import type { ReceiptItemRow } from "~/components/goods-receipt/receipt-items-table";
-import type { GoodsReceiptFormData } from "~/types/goods-receipt.types";
+import type { CreateGoodsReceiptRequest } from "~/types/goods-receipt.types";
 
 import { ReceiptFooterSection } from "~/components/goods-receipt/receipt-footer-section";
 import { ReceiptGeneralSection } from "~/components/goods-receipt/receipt-general-section";
@@ -21,7 +21,7 @@ import {
 } from "~/middleware/auth-trace.server";
 import { masterDataService } from "~/services/master-data.service";
 import { receiptService } from "~/services/receipt.service";
-import { GoodsReceiptFormSchema } from "~/types/goods-receipt.types";
+import { CreateGoodsReceiptSchema } from "~/types/goods-receipt.types";
 
 export const middleware = [traceAndAuthMiddleware];
 
@@ -47,24 +47,18 @@ export async function action({ request, context }: Route.ActionArgs) {
 
   try {
     const rawData = await request.json();
-    const parsedData: GoodsReceiptFormData =
-      GoodsReceiptFormSchema.parse(rawData);
+    const parsedData = CreateGoodsReceiptSchema.parse(rawData);
     const response = await receiptService.createReceipt(parsedData, requestId);
 
     return data({
       success: true,
-      message: "Lưu phiếu nhập kho thành công",
+      message: "Lập phiếu nhập kho thành công (Mẫu 01 - VT)",
       receiptId: response.data?.receiptId,
     });
-  } catch (error: any) {
-    return data(
-      {
-        success: false,
-        message: error.message || "Không thể tạo phiếu nhập kho",
-        errors: error.errors || [],
-      },
-      { status: 400 },
-    );
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : "Không thể tạo phiếu nhập kho";
+    return data({ success: false, message }, { status: 400 });
   }
 }
 
@@ -82,7 +76,7 @@ export default function NewGoodsReceiptRoute() {
     new Date().toISOString().split("T")[0],
   );
   const [receiptType, setReceiptType] =
-    useState<GoodsReceiptFormData["receiptType"]>("PURCHASE");
+    useState<CreateGoodsReceiptRequest["receiptType"]>("PURCHASE");
   const [debitAccount, setDebitAccount] = useState("152");
   const [creditAccount, setCreditAccount] = useState("331");
 
@@ -96,7 +90,8 @@ export default function NewGoodsReceiptRoute() {
   const [docOrigin, setDocOrigin] = useState("");
   const [description, setDescription] = useState("");
 
-  const [attachedDocCount, setAttachedDocCount] = useState("1 hóa đơn gốc");
+  const [attachedDocCount, setAttachedDocCount] =
+    useState("1 hóa đơn GTGT gốc");
   const [creatorName, setCreatorName] = useState("Lê Văn Lập");
   const [storekeeperName, setStorekeeperName] = useState("Trần Văn Kho");
   const [chiefAccountantName, setChiefAccountantName] =
@@ -168,25 +163,25 @@ export default function NewGoodsReceiptRoute() {
       return;
     }
 
-    const payload: GoodsReceiptFormData = {
-      organizationId,
+    const payload: CreateGoodsReceiptRequest = {
       receiptNumber,
       receiptDate,
-      receiptType,
-      debitAccount: debitAccount || undefined,
-      creditAccount: creditAccount || undefined,
+      actualReceivedDate: actualReceivedDate || null,
+      organizationId,
       warehouseId,
+      receiptType,
+      description: description || null,
       delivererName,
-      actualReceivedDate: actualReceivedDate || undefined,
-      docReference: docReference || undefined,
-      docDate: docDate || undefined,
-      docOrigin: docOrigin || undefined,
-      description: description || undefined,
-      attachedDocCount: attachedDocCount || undefined,
-      creatorName: creatorName || undefined,
-      storekeeperName: storekeeperName || undefined,
-      chiefAccountantName: chiefAccountantName || undefined,
-      totalAmountWords,
+      docReference: docReference || null,
+      docDate: docDate || null,
+      docOrigin: docOrigin || null,
+      debitAccount: debitAccount || null,
+      creditAccount: creditAccount || null,
+      totalAmountWords: totalAmountWords || null,
+      attachedDocCount: attachedDocCount || null,
+      creatorName: creatorName || null,
+      storekeeperName: storekeeperName || null,
+      chiefAccountantName: chiefAccountantName || null,
       status,
       items: items.map((it) => ({
         productId: it.productId,
@@ -195,13 +190,13 @@ export default function NewGoodsReceiptRoute() {
         docQty: Number(it.docQty),
         actualQty: Number(it.actualQty),
         unitPrice: Number(it.unitPrice),
-        debitAccount: it.debitAccount || undefined,
-        creditAccount: it.creditAccount || undefined,
-        note: it.note || undefined,
+        debitAccount: it.debitAccount || null,
+        creditAccount: it.creditAccount || null,
+        note: it.note || null,
       })),
     };
 
-    fetcher.submit(payload, {
+    fetcher.submit(JSON.stringify(payload), {
       method: "POST",
       encType: "application/json",
     });
@@ -268,8 +263,8 @@ export default function NewGoodsReceiptRoute() {
         receiptDate={receiptDate}
         setReceiptDate={setReceiptDate}
         receiptType={receiptType}
-        setReceiptType={(val) =>
-          setReceiptType(val as GoodsReceiptFormData["receiptType"])
+        setReceiptType={(v) =>
+          setReceiptType(v as CreateGoodsReceiptRequest["receiptType"])
         }
         debitAccount={debitAccount}
         setDebitAccount={setDebitAccount}

@@ -1,13 +1,10 @@
-import { useEffect, useState } from "react";
-import { data, useFetcher, useLoaderData } from "react-router";
+import { Package } from "lucide-react";
+import { useLoaderData } from "react-router";
 
 import type { Route } from "./+types/_app.master-data.products";
 
-import type { ProductItem } from "~/components/master-data/product-table-section";
-
-import { ProductFormModal } from "~/components/master-data/product-form-modal";
 import { ProductTableSection } from "~/components/master-data/product-table-section";
-import { toast } from "~/components/ui/toast";
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import {
   requestIdContext,
   traceAndAuthMiddleware,
@@ -16,89 +13,44 @@ import { masterDataService } from "~/services/master-data.service";
 
 export const middleware = [traceAndAuthMiddleware];
 
-export async function loader({ context }: Route.LoaderArgs) {
+export async function loader({ request, context }: Route.LoaderArgs) {
   const requestId = context.get(requestIdContext) || crypto.randomUUID();
-  const res = await masterDataService.getProducts(undefined, requestId);
-  return { products: res.data || [] };
-}
+  const url = new URL(request.url);
+  const search = url.searchParams.get("search") || undefined;
 
-export async function action({ request, context }: Route.ActionArgs) {
-  const requestId = context.get(requestIdContext) || crypto.randomUUID();
-
-  try {
-    const body = await request.json();
-    if (body.id) {
-      await masterDataService.updateProduct(body.id, body, requestId);
-    } else {
-      await masterDataService.createProduct(body, requestId);
-    }
-    return data({
-      success: true,
-      message: "Cập nhật danh mục vật tư thành công",
-    });
-  } catch (error: any) {
-    return data(
-      { success: false, message: error.message || "Lỗi lưu danh mục vật tư" },
-      { status: 400 },
-    );
-  }
+  const res = await masterDataService.getProducts(search, requestId);
+  return { products: res.data || [], currentSearch: search || "" };
 }
 
 export default function MasterDataProductsRoute() {
-  const { products } = useLoaderData<typeof loader>();
-  const fetcher = useFetcher<typeof action>();
-
-  const [isOpenModal, setIsOpenModal] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<ProductItem | null>(
-    null,
-  );
-
-  useEffect(() => {
-    if (!fetcher.data) return;
-
-    if (fetcher.data.success) {
-      toast.add({
-        type: "success",
-        title: "Thành công",
-        description: fetcher.data.message,
-      });
-    } else {
-      toast.add({
-        type: "error",
-        title: "Thất bại",
-        description: fetcher.data.message,
-      });
-    }
-  }, [fetcher.data]);
-
-  const handleSubmit = (productData: Partial<ProductItem>) => {
-    fetcher.submit(productData, {
-      method: "POST",
-      encType: "application/json",
-    });
-    setIsOpenModal(false);
-  };
+  const { products, currentSearch } = useLoaderData<typeof loader>();
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      <ProductTableSection
-        products={products}
-        onOpenCreateModal={() => {
-          setSelectedProduct(null);
-          setIsOpenModal(true);
-        }}
-        onEditProduct={(p) => {
-          setSelectedProduct(p);
-          setIsOpenModal(true);
-        }}
-      />
-      <ProductFormModal
-        isOpen={isOpenModal}
-        onClose={() => setIsOpenModal(false)}
-        onSubmit={handleSubmit}
-        initialData={selectedProduct}
-        isLoading={fetcher.state === "submitting"}
-      />
+      <div>
+        <h1 className="text-xl font-bold tracking-tight">
+          Danh Mục Vật Tư / Hàng Hóa
+        </h1>
+        <p className="text-xs text-muted-foreground mt-0.5">
+          Master Catalog phục vụ tự động điền đơn giá và quy cách khi lập Phiếu
+          Nhập Kho
+        </p>
+      </div>
+
+      <Card>
+        <CardHeader className="py-4 px-6 border-b">
+          <CardTitle className="text-sm font-semibold flex items-center gap-2">
+            <Package className="h-4 w-4 text-primary" />
+            Danh Mục Vật Tư ({products.length})
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <ProductTableSection
+            products={products}
+            initialSearch={currentSearch}
+          />
+        </CardContent>
+      </Card>
     </div>
   );
 }

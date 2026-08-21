@@ -5,7 +5,7 @@ import { data, useFetcher, useLoaderData, useNavigate } from "react-router";
 import type { Route } from "./+types/_app.goods-receipts.$id.edit";
 
 import type { ReceiptItemRow } from "~/components/goods-receipt/receipt-items-table";
-import type { GoodsReceiptFormData } from "~/types/goods-receipt.types";
+import type { UpdateGoodsReceiptRequest } from "~/types/goods-receipt.types";
 
 import { ReceiptFooterSection } from "~/components/goods-receipt/receipt-footer-section";
 import { ReceiptGeneralSection } from "~/components/goods-receipt/receipt-general-section";
@@ -20,7 +20,7 @@ import {
 } from "~/middleware/auth-trace.server";
 import { masterDataService } from "~/services/master-data.service";
 import { receiptService } from "~/services/receipt.service";
-import { GoodsReceiptFormSchema } from "~/types/goods-receipt.types";
+import { UpdateGoodsReceiptSchema } from "~/types/goods-receipt.types";
 
 export const middleware = [traceAndAuthMiddleware];
 
@@ -29,7 +29,7 @@ export async function loader({ params, context }: Route.LoaderArgs) {
   const id = params.id;
 
   if (!id) {
-    throw new Response("Không tìm thấy mã chứng từ", { status: 400 });
+    throw new Response("Mã chứng từ không hợp lệ", { status: 400 });
   }
 
   const [receiptRes, orgsRes, warehousesRes, productsRes] = await Promise.all([
@@ -40,7 +40,14 @@ export async function loader({ params, context }: Route.LoaderArgs) {
   ]);
 
   if (!receiptRes.data) {
-    throw new Response("Chứng từ không tồn tại trên hệ thống", { status: 404 });
+    throw new Response("Chứng từ không tồn tại", { status: 404 });
+  }
+
+  if (receiptRes.data.status === "CANCELLED") {
+    throw new Response(
+      "Không thể chỉnh sửa phiếu nhập đã ở trạng thái CANCELLED",
+      { status: 422 },
+    );
   }
 
   return {
@@ -64,8 +71,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 
   try {
     const rawData = await request.json();
-    const parsedData: GoodsReceiptFormData =
-      GoodsReceiptFormSchema.parse(rawData);
+    const parsedData = UpdateGoodsReceiptSchema.parse(rawData);
     await receiptService.updateReceipt(id, parsedData, requestId);
 
     return data({
@@ -73,17 +79,11 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       message: "Cập nhật phiếu nhập kho thành công",
     });
   } catch (error: unknown) {
-    const errorMessage =
+    const message =
       error instanceof Error
         ? error.message
         : "Không thể cập nhật phiếu nhập kho";
-    return data(
-      {
-        success: false,
-        message: errorMessage,
-      },
-      { status: 400 },
-    );
+    return data({ success: false, message }, { status: 400 });
   }
 }
 
@@ -96,11 +96,11 @@ export default function EditGoodsReceiptRoute() {
   const [organizationId, setOrganizationId] = useState(
     receipt.organization?.id || organizations[0]?.id || "",
   );
-  const [receiptNumber, setReceiptNumber] = useState(receipt.receiptNumber);
+  const [receiptNumber] = useState(receipt.receiptNumber);
   const [receiptDate, setReceiptDate] = useState(receipt.receiptDate);
   const [receiptType, setReceiptType] = useState<
-    GoodsReceiptFormData["receiptType"]
-  >((receipt.receiptType as GoodsReceiptFormData["receiptType"]) || "PURCHASE");
+    UpdateGoodsReceiptRequest["receiptType"]
+  >(receipt.receiptType || "PURCHASE");
   const [debitAccount, setDebitAccount] = useState(
     receipt.debitAccount || "152",
   );
@@ -170,68 +170,41 @@ export default function EditGoodsReceiptRoute() {
       toast.add({
         type: "error",
         title: "Lỗi cập nhật",
-        description: fetcher.data.message || "Vui lòng kiểm tra lại thông tin.",
+        description: fetcher.data.message || "Vui lòng kiểm tra lại dữ liệu.",
       });
     }
   }, [fetcher.data, navigate, receipt.id, receiptNumber]);
 
   const handleUpdate = () => {
-    if (!organizationId) {
-      toast.add({
-        type: "error",
-        title: "Thiếu thông tin",
-        description: "Vui lòng chọn Đơn vị / Phòng ban.",
-      });
-      return;
-    }
-    if (!warehouseId) {
-      toast.add({
-        type: "error",
-        title: "Thiếu thông tin",
-        description: "Vui lòng chọn Kho tiếp nhận.",
-      });
-      return;
-    }
-    if (!delivererName.trim()) {
-      toast.add({
-        type: "error",
-        title: "Thiếu thông tin",
-        description: "Vui lòng nhập Họ tên người giao hàng.",
-      });
-      return;
-    }
-
-    const payload: GoodsReceiptFormData = {
-      organizationId,
-      receiptNumber,
+    const payload: UpdateGoodsReceiptRequest = {
       receiptDate,
-      receiptType,
-      debitAccount: debitAccount || undefined,
-      creditAccount: creditAccount || undefined,
+      actualReceivedDate: actualReceivedDate || null,
+      organizationId,
       warehouseId,
+      receiptType,
+      description: description || null,
       delivererName,
-      actualReceivedDate: actualReceivedDate || undefined,
-      docReference: docReference || undefined,
-      docDate: docDate || undefined,
-      docOrigin: docOrigin || undefined,
-      description: description || undefined,
-      attachedDocCount: attachedDocCount || undefined,
-      creatorName: creatorName || undefined,
-      storekeeperName: storekeeperName || undefined,
-      chiefAccountantName: chiefAccountantName || undefined,
-      totalAmountWords,
-      status: receipt.status as GoodsReceiptFormData["status"],
+      docReference: docReference || null,
+      docDate: docDate || null,
+      docOrigin: docOrigin || null,
+      debitAccount: debitAccount || null,
+      creditAccount: creditAccount || null,
+      totalAmountWords: totalAmountWords || null,
+      attachedDocCount: attachedDocCount || null,
+      creatorName: creatorName || null,
+      storekeeperName: storekeeperName || null,
+      chiefAccountantName: chiefAccountantName || null,
+      status: receipt.status as UpdateGoodsReceiptRequest["status"],
       items: items.map((it) => ({
         productId: it.productId,
-        productCode: it.productCode || undefined,
         productNameSnapshot: it.productNameSnapshot,
         unitSnapshot: it.unitSnapshot,
         docQty: Number(it.docQty),
         actualQty: Number(it.actualQty),
         unitPrice: Number(it.unitPrice),
-        debitAccount: it.debitAccount || undefined,
-        creditAccount: it.creditAccount || undefined,
-        note: it.note || undefined,
+        debitAccount: it.debitAccount || null,
+        creditAccount: it.creditAccount || null,
+        note: it.note || null,
       })),
     };
 
@@ -279,12 +252,12 @@ export default function EditGoodsReceiptRoute() {
         organizationId={organizationId}
         setOrganizationId={setOrganizationId}
         receiptNumber={receiptNumber}
-        setReceiptNumber={setReceiptNumber}
+        setReceiptNumber={() => {}}
         receiptDate={receiptDate}
         setReceiptDate={setReceiptDate}
-        receiptType={receiptType}
+        receiptType={receiptType || "PURCHASE"}
         setReceiptType={(val) =>
-          setReceiptType(val as GoodsReceiptFormData["receiptType"])
+          setReceiptType(val as UpdateGoodsReceiptRequest["receiptType"])
         }
         debitAccount={debitAccount}
         setDebitAccount={setDebitAccount}

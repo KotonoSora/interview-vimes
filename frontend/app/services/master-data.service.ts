@@ -1,46 +1,43 @@
-import type { OrganizationItem } from "~/components/master-data/organization-table-section";
-import type { ProductItem } from "~/components/master-data/product-table-section";
-import type { WarehouseItem } from "~/components/master-data/warehouse-table-section";
 import type { BaseApiResponse } from "~/types/api.types";
 
 import { apiClient } from "~/lib/api-client";
 
+export interface MasterProduct {
+  id: string;
+  code: string;
+  name: string;
+  unit: string;
+  defaultPrice: number;
+}
+
+export interface MasterWarehouse {
+  id: string;
+  code: string;
+  name: string;
+  location?: string;
+}
+
+export interface MasterOrganization {
+  id: string;
+  code: string;
+  name: string;
+  department?: string;
+}
+
 export const masterDataService = {
-  // --- Danh mục Vật tư / Hàng hóa ---
-  getProducts: async (search?: string, requestId?: string) => {
-    return apiClient<BaseApiResponse<ProductItem[]>>("/master-data/products", {
-      method: "GET",
-      params: { search },
-      requestId,
-    });
-  },
-
-  createProduct: async (payload: Partial<ProductItem>, requestId?: string) => {
-    return apiClient<BaseApiResponse<ProductItem>>("/master-data/products", {
-      method: "POST",
-      body: JSON.stringify(payload),
-      requestId,
-    });
-  },
-
-  updateProduct: async (
-    id: string,
-    payload: Partial<ProductItem>,
-    requestId?: string,
-  ) => {
-    return apiClient<BaseApiResponse<ProductItem>>(
-      `/master-data/products/${id}`,
+  async getProducts(search?: string, requestId?: string) {
+    return apiClient<BaseApiResponse<MasterProduct[]>>(
+      "/master-data/products",
       {
-        method: "PUT",
-        body: JSON.stringify(payload),
+        method: "GET",
+        params: search ? { search } : undefined,
         requestId,
       },
     );
   },
 
-  // --- Danh mục Kho bãi ---
-  getWarehouses: async (requestId?: string) => {
-    return apiClient<BaseApiResponse<WarehouseItem[]>>(
+  async getWarehouses(requestId?: string) {
+    return apiClient<BaseApiResponse<MasterWarehouse[]>>(
       "/master-data/warehouses",
       {
         method: "GET",
@@ -49,70 +46,11 @@ export const masterDataService = {
     );
   },
 
-  createWarehouse: async (
-    payload: Partial<WarehouseItem>,
-    requestId?: string,
-  ) => {
-    return apiClient<BaseApiResponse<WarehouseItem>>(
-      "/master-data/warehouses",
-      {
-        method: "POST",
-        body: JSON.stringify(payload),
-        requestId,
-      },
-    );
-  },
-
-  updateWarehouse: async (
-    id: string,
-    payload: Partial<WarehouseItem>,
-    requestId?: string,
-  ) => {
-    return apiClient<BaseApiResponse<WarehouseItem>>(
-      `/master-data/warehouses/${id}`,
-      {
-        method: "PUT",
-        body: JSON.stringify(payload),
-        requestId,
-      },
-    );
-  },
-
-  // --- Danh mục Đơn vị / Phòng ban ---
-  getOrganizations: async (requestId?: string) => {
-    return apiClient<BaseApiResponse<OrganizationItem[]>>(
+  async getOrganizations(requestId?: string) {
+    return apiClient<BaseApiResponse<MasterOrganization[]>>(
       "/master-data/organizations",
       {
         method: "GET",
-        requestId,
-      },
-    );
-  },
-
-  createOrganization: async (
-    payload: Partial<OrganizationItem>,
-    requestId?: string,
-  ) => {
-    return apiClient<BaseApiResponse<OrganizationItem>>(
-      "/master-data/organizations",
-      {
-        method: "POST",
-        body: JSON.stringify(payload),
-        requestId,
-      },
-    );
-  },
-
-  updateOrganization: async (
-    id: string,
-    payload: Partial<OrganizationItem>,
-    requestId?: string,
-  ) => {
-    return apiClient<BaseApiResponse<OrganizationItem>>(
-      `/master-data/organizations/${id}`,
-      {
-        method: "PUT",
-        body: JSON.stringify(payload),
         requestId,
       },
     );

@@ -4,6 +4,7 @@ import { Link, useLoaderData } from "react-router";
 import type { Route } from "./+types/_app.goods-receipts._index";
 
 import type { ReceiptType } from "~/constants/receipt.constants";
+import type { GetReceiptsQuery } from "~/services/receipt.service";
 
 import { ReceiptFilterToolbar } from "~/components/goods-receipt/receipt-filter-toolbar";
 import { Badge } from "~/components/ui/badge";
@@ -36,7 +37,10 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   const warehouseId =
     rawWarehouseId && rawWarehouseId !== "all" ? rawWarehouseId : undefined;
   const rawStatus = url.searchParams.get("status");
-  const status = rawStatus && rawStatus !== "all" ? rawStatus : undefined;
+  const status =
+    rawStatus && ["DRAFT", "CONFIRMED", "CANCELLED"].includes(rawStatus)
+      ? (rawStatus as GetReceiptsQuery["status"])
+      : undefined;
   const fromDate = url.searchParams.get("fromDate") || undefined;
   const toDate = url.searchParams.get("toDate") || undefined;
   const page = Number(url.searchParams.get("page")) || 1;
@@ -159,7 +163,7 @@ export default function GoodsReceiptsIndexRoute() {
                     key={row.id}
                     className="hover:bg-muted/30 transition-colors"
                   >
-                    {/* 1. Số phiếu */}
+                    {/* Số phiếu */}
                     <TableCell className="font-semibold text-xs text-primary whitespace-nowrap">
                       <Link
                         to={`/goods-receipts/${row.id}`}
@@ -169,12 +173,12 @@ export default function GoodsReceiptsIndexRoute() {
                       </Link>
                     </TableCell>
 
-                    {/* 2. Ngày lập */}
+                    {/* Ngày lập */}
                     <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
                       {row.receiptDate}
                     </TableCell>
 
-                    {/* 3. Loại nhập */}
+                    {/* Loại nhập */}
                     <TableCell className="text-xs whitespace-nowrap">
                       <span className="text-muted-foreground">
                         {RECEIPT_TYPE_LABELS[row.receiptType as ReceiptType] ||
@@ -183,22 +187,22 @@ export default function GoodsReceiptsIndexRoute() {
                       </span>
                     </TableCell>
 
-                    {/* 4. Kho tiếp nhận */}
+                    {/* Kho tiếp nhận */}
                     <TableCell className="text-xs font-medium">
-                      {row.warehouseName || row.warehouse?.name || "—"}
+                      {row.warehouseName || "—"}
                     </TableCell>
 
-                    {/* 5. Người giao hàng */}
+                    {/* Người giao hàng */}
                     <TableCell className="text-xs text-foreground">
                       {row.delivererName || "—"}
                     </TableCell>
 
-                    {/* 6. Chứng từ gốc */}
+                    {/* Số CT gốc */}
                     <TableCell className="text-xs text-muted-foreground">
                       {row.docReference || "—"}
                     </TableCell>
 
-                    {/* 7. Bút toán Nợ/Có */}
+                    {/* Bút toán Nợ/Có */}
                     <TableCell className="text-xs text-center font-mono whitespace-nowrap">
                       <span className="text-blue-600 dark:text-blue-400">
                         N:{row.debitAccount || "152"}
@@ -209,12 +213,12 @@ export default function GoodsReceiptsIndexRoute() {
                       </span>
                     </TableCell>
 
-                    {/* 8. Tổng tiền */}
+                    {/* Tổng tiền */}
                     <TableCell className="text-right font-semibold text-xs whitespace-nowrap">
                       {formatCurrencyVND(row.totalAmount || 0)}
                     </TableCell>
 
-                    {/* 9. Trạng thái */}
+                    {/* Trạng thái */}
                     <TableCell className="text-center whitespace-nowrap">
                       <Badge
                         variant={
@@ -234,7 +238,7 @@ export default function GoodsReceiptsIndexRoute() {
                       </Badge>
                     </TableCell>
 
-                    {/* 10. Thao tác */}
+                    {/* Thao tác */}
                     <TableCell className="text-center">
                       <div className="flex items-center justify-center gap-1">
                         <Link

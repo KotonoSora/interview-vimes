@@ -1,4 +1,4 @@
-import { ArrowRight, Eye } from "lucide-react";
+import { Eye, FileText } from "lucide-react";
 import { Link } from "react-router";
 
 import { Badge } from "~/components/ui/badge";
@@ -11,72 +11,52 @@ import {
   TableHeader,
   TableRow,
 } from "~/components/ui/table";
+import { formatCurrencyVND } from "~/lib/formatters";
 
-interface RecentReceipt {
+export interface RecentReceipt {
   id: string;
   receiptNumber: string;
   receiptDate: string;
-  warehouseName: string;
+  warehouseName?: string;
   delivererName: string;
   totalAmount: number;
-  status: "DRAFT" | "CONFIRMED" | "CANCELLED";
+  status: string;
 }
 
-interface RecentReceiptsTableProps {
+export interface RecentReceiptsTableProps {
   receipts?: RecentReceipt[];
 }
 
 export function RecentReceiptsTable({
   receipts = [],
 }: RecentReceiptsTableProps) {
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "CONFIRMED":
-        return (
-          <Badge className="bg-emerald-600 hover:bg-emerald-700">
-            Đã nhập kho
-          </Badge>
-        );
-      case "DRAFT":
-        return <Badge variant="secondary">Bản nháp</Badge>;
-      case "CANCELLED":
-        return <Badge variant="destructive">Đã hủy</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
-  };
-
   return (
-    <Card className="col-span-1 lg:col-span-3">
-      <CardHeader className="flex flex-row items-center justify-between py-4 px-6 border-b">
-        <div>
-          <CardTitle className="text-base font-semibold">
-            Chứng Từ Nhập Kho Mới Nhất
-          </CardTitle>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Theo dõi luồng phát sinh vật tư trong tuần
-          </p>
-        </div>
+    <Card className="lg:col-span-3">
+      <CardHeader className="py-4 px-6 border-b flex flex-row items-center justify-between">
+        <CardTitle className="text-sm font-semibold flex items-center gap-2">
+          <FileText className="h-4 w-4 text-primary" />
+          Phiếu Nhập Kho Gần Đây
+        </CardTitle>
         <Link
           to="/goods-receipts"
-          className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground py-1 px-2.5 rounded-md hover:bg-accent"
+          className="text-xs text-primary hover:underline font-medium"
         >
-          Xem tất cả <ArrowRight className="h-3.5 w-3.5" />
+          Xem tất cả sổ theo dõi &rarr;
         </Link>
       </CardHeader>
-      <CardContent className="p-0">
+      <CardContent className="p-0 overflow-x-auto">
         <Table>
           <TableHeader>
-            <TableRow className="bg-muted/30">
-              <TableHead className="w-[140px]">Số phiếu</TableHead>
+            <TableRow className="bg-muted/40">
+              <TableHead className="w-[130px]">Số phiếu</TableHead>
               <TableHead className="w-[110px]">Ngày lập</TableHead>
               <TableHead>Kho tiếp nhận</TableHead>
               <TableHead>Người giao hàng</TableHead>
-              <TableHead className="text-right">Tổng tiền (VNĐ)</TableHead>
+              <TableHead className="text-right">Tổng tiền</TableHead>
               <TableHead className="text-center w-[120px]">
                 Trạng thái
               </TableHead>
-              <TableHead className="w-[60px] text-right"></TableHead>
+              <TableHead className="w-[60px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -84,38 +64,56 @@ export function RecentReceiptsTable({
               <TableRow>
                 <TableCell
                   colSpan={7}
-                  className="h-28 text-center text-muted-foreground text-sm"
+                  className="h-28 text-center text-xs text-muted-foreground"
                 >
-                  Chưa có chứng từ nào phát sinh gần đây.
+                  Chưa có dữ liệu phiếu nhập kho nào gần đây.
                 </TableCell>
               </TableRow>
             ) : (
-              receipts.slice(0, 5).map((row) => (
+              receipts.slice(0, 8).map((row) => (
                 <TableRow key={row.id}>
-                  <TableCell className="font-semibold text-primary">
-                    {row.receiptNumber}
+                  <TableCell className="font-semibold text-xs text-primary">
+                    <Link
+                      to={`/goods-receipts/${row.id}`}
+                      className="hover:underline"
+                    >
+                      {row.receiptNumber}
+                    </Link>
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">
                     {row.receiptDate}
                   </TableCell>
-                  <TableCell>{row.warehouseName || "—"}</TableCell>
-                  <TableCell>{row.delivererName}</TableCell>
-                  <TableCell className="text-right font-medium">
-                    {new Intl.NumberFormat("vi-VN").format(
-                      row.totalAmount || 0,
-                    )}{" "}
-                    ₫
+                  <TableCell className="text-xs font-medium">
+                    {row.warehouseName || "—"}
+                  </TableCell>
+                  <TableCell className="text-xs">{row.delivererName}</TableCell>
+                  <TableCell className="text-right font-semibold text-xs">
+                    {formatCurrencyVND(row.totalAmount)}
                   </TableCell>
                   <TableCell className="text-center">
-                    {getStatusBadge(row.status)}
+                    <Badge
+                      variant={
+                        row.status === "CONFIRMED"
+                          ? "default"
+                          : row.status === "DRAFT"
+                            ? "secondary"
+                            : "destructive"
+                      }
+                      className="text-[10px]"
+                    >
+                      {row.status === "CONFIRMED"
+                        ? "Đã nhập kho"
+                        : row.status === "DRAFT"
+                          ? "Bản nháp"
+                          : "Đã hủy"}
+                    </Badge>
                   </TableCell>
                   <TableCell className="text-right">
                     <Link
                       to={`/goods-receipts/${row.id}`}
-                      className="inline-flex items-center justify-center h-8 w-8 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground"
-                      title="Xem chi tiết"
+                      className="inline-flex items-center justify-center h-7 w-7 rounded hover:bg-accent text-muted-foreground hover:text-foreground"
                     >
-                      <Eye className="h-4 w-4" />
+                      <Eye className="h-3.5 w-3.5" />
                     </Link>
                   </TableCell>
                 </TableRow>
