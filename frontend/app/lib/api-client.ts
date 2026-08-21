@@ -1,42 +1,82 @@
-import type { ApiErrorResponse, BaseApiResponse } from "~/types/api.types";
+import { toast } from "~/components/ui/toast";
 
-const getApiBaseUrl = (): string => {
-  // 1. Vite environment variable (Client & SSR)
+/**
+ * Lấy Base URL gốc của hệ thống Backend (mặc định http://localhost:3000)
+ */
+const getBackendOrigin = (): string => {
+  let rawUrl = "http://localhost:3000";
+
   if (
     typeof import.meta !== "undefined" &&
     import.meta.env?.VITE_API_BASE_URL
   ) {
-    return import.meta.env.VITE_API_BASE_URL;
+    rawUrl = import.meta.env.VITE_API_BASE_URL;
+  } else if (typeof process !== "undefined" && process.env?.API_BASE_URL) {
+    rawUrl = process.env.API_BASE_URL;
   }
-  // 2. Node.js process.env fallback
-  if (typeof process !== "undefined" && process.env?.API_BASE_URL) {
-    return process.env.API_BASE_URL;
-  }
-  return "http://localhost:8080/api/v1";
+
+  // Chuẩn hóa: Loại bỏ /api/v1 và dấu gạch chéo cuối nếu người dùng cấu hình nhầm
+  return rawUrl.replace(/\/api\/v1\/?$/, "").replace(/\/+$/, "");
 };
 
-interface RequestOptions extends RequestInit {
-  params?: Record<string, string | number | boolean | undefined | null>;
-  requestId?: string;
-}
+/**
+ * Danh sách các endpoint cấp Root (Observability / Probes / Metrics)
+ * Theo chuẩn OpenAPI 3.1.0, các đường dẫn này KHÔNG có tiền tố /api/v1
+ */
+const ROOT_ENDPOINTS = ["/healthz", "/ready", "/metrics"];
+
+/**
+ * Xây dựng URL hoàn chỉnh dựa theo đặc tả OpenAPI
+ */
+export const buildApiUrl = (endpoint: string): string => {
+  const origin = getBackendOrigin();
+  const cleanEndpoint = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
+
+  // 1. Nếu là endpoint Root Observability -> http://origin/{endpoint}
+  const isRootEndpoint = ROOT_ENDPOINTS.some(
+    (rootPath) =>
+      cleanEndpoint === rootPath || cleanEndpoint.startsWith(`${rootPath}?`),
+  );
+
+  if (isRootEndpoint) {
+    return `${origin}${cleanEndpoint}`;
+  }
+
+  // 2. Nếu endpoint đã có sẵn /api/v1 -> không lặp lại
+  if (cleanEndpoint.startsWith("/api/v1/")) {
+    return `${origin}${cleanEndpoint}`;
+  }
+
+  // 3. Các API nghiệp vụ thông thường -> http://origin/api/v1/{endpoint}
+  return `${origin}/api/v1${cleanEndpoint}`;
+};
 
 export class ApiClientError extends Error {
   public statusCode: number;
   public requestId?: string;
+  public endpoint: string;
   public errors?: Array<{ path: string; message: string }>;
 
   constructor(
     message: string,
     statusCode: number,
+    endpoint: string,
     requestId?: string,
     errors?: Array<{ path: string; message: string }>,
   ) {
     super(message);
     this.name = "ApiClientError";
     this.statusCode = statusCode;
+    this.endpoint = endpoint;
     this.requestId = requestId;
     this.errors = errors;
   }
+}
+
+interface RequestOptions extends RequestInit {
+  params?: Record<string, string | number | boolean | undefined | null>;
+  requestId?: string;
+  disableToast?: boolean;
 }
 
 export async function apiClient<T>(
@@ -46,12 +86,20 @@ export async function apiClient<T>(
   const {
     params,
     requestId,
+    disableToast = false,
     headers: customHeaders,
     ...customConfig
   } = options;
-  const baseUrl = getApiBaseUrl();
 
-  let url = `${baseUrl}${endpoint}`;
+  const traceId =
+    requestId ||
+    (typeof crypto !== "undefined" && crypto.randomUUID
+      ? crypto.randomUUID()
+      : "trace-id");
+
+  // Xây dựng URL chuẩn (tự động phân biệt root observability vs /api/v1)
+  let fullUrl = buildApiUrl(endpoint);
+
   if (params) {
     const searchParams = new URLSearchParams();
     Object.entries(params).forEach(([key, value]) => {
@@ -61,42 +109,54 @@ export async function apiClient<T>(
     });
     const queryString = searchParams.toString();
     if (queryString) {
-      url += (url.includes("?") ? "&" : "?") + queryString;
+      fullUrl += (fullUrl.includes("?") ? "&" : "?") + queryString;
     }
   }
 
-  const traceId =
-    requestId ||
-    (typeof crypto !== "undefined" ? crypto.randomUUID() : "client-trace-id");
+  const isMetricRequest =
+    endpoint === "/metrics" || endpoint.endsWith("/metrics");
+
   const headers: HeadersInit = {
-    "Content-Type": "application/json",
-    Accept: "application/json",
     "X-Request-Id": traceId,
+    Accept: isMetricRequest ? "text/plain, */*" : "application/json",
+    ...(!isMetricRequest && { "Content-Type": "application/json" }),
     ...customHeaders,
   };
 
-  const config: RequestInit = {
-    ...customConfig,
-    headers,
-  };
-
   try {
-    const response = await fetch(url, config);
+    const response = await fetch(fullUrl, {
+      ...customConfig,
+      headers,
+    });
 
-    if (endpoint === "/metrics") {
-      const textData = await response.text();
-      return textData as unknown as T;
+    // 1. Phản hồi định dạng Prometheus Metrics (Text thuần)
+    if (isMetricRequest) {
+      return (await response.text()) as unknown as T;
     }
 
+    // 2. Phản hồi định dạng JSON
     const data = await response.json().catch(() => ({}));
 
     if (!response.ok) {
-      const errorData = data as ApiErrorResponse;
+      const errorMsg =
+        data.message ||
+        `Lỗi yêu cầu HTTP ${response.status} khi gọi ${endpoint}`;
+
+      // Bật Toast phía trình duyệt Client nếu cần
+      if (typeof window !== "undefined" && !disableToast) {
+        toast.add({
+          type: "error",
+          title: `Lỗi API [${response.status}]`,
+          description: `${errorMsg} (${endpoint})`,
+        });
+      }
+
       throw new ApiClientError(
-        errorData.message || `Lỗi yêu cầu HTTP ${response.status}`,
+        errorMsg,
         response.status,
-        errorData.requestId || traceId,
-        errorData.errors,
+        endpoint,
+        data.requestId || traceId,
+        data.errors,
       );
     }
 
@@ -105,10 +165,18 @@ export async function apiClient<T>(
     if (err instanceof ApiClientError) {
       throw err;
     }
-    throw new ApiClientError(
-      err instanceof Error ? err.message : "Mất kết nối tới API Gateway",
-      0,
-      traceId,
-    );
+
+    const networkMsg =
+      err instanceof Error ? err.message : "Mất kết nối tới máy chủ Backend";
+
+    if (typeof window !== "undefined" && !disableToast) {
+      toast.add({
+        type: "error",
+        title: "Lỗi kết nối API",
+        description: `${networkMsg} -> ${fullUrl}`,
+      });
+    }
+
+    throw new ApiClientError(networkMsg, 0, endpoint, traceId);
   }
 }

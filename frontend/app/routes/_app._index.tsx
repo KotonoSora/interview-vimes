@@ -1,12 +1,21 @@
 import { useLoaderData } from "react-router";
 
+import type { Route } from "./+types/_app._index";
+
 import { MetricOverviewCards } from "~/components/dashboard/metric-overview-cards";
 import { QuickActions } from "~/components/dashboard/quick-actions";
 import { RecentReceiptsTable } from "~/components/dashboard/recent-receipts-table";
-import { withLoaderContext } from "~/lib/route-middleware.server";
+import {
+  requestIdContext,
+  traceAndAuthMiddleware,
+} from "~/middleware/auth-trace.server";
 import { receiptService } from "~/services/receipt.service";
 
-export const loader = withLoaderContext(async (_req, { requestId }) => {
+export const middleware = [traceAndAuthMiddleware];
+
+export async function loader({ context }: Route.LoaderArgs) {
+  const requestId = context.get(requestIdContext) || crypto.randomUUID();
+
   const receiptsRes = await receiptService.getReceipts(
     { page: 1, limit: 10 },
     requestId,
@@ -24,11 +33,11 @@ export const loader = withLoaderContext(async (_req, { requestId }) => {
       totalReceiptsMonth,
       totalValueMonth,
       pendingDraftCount,
-      lowStockAlertCount: 2,
+      lowStockAlertCount: 0,
     },
     recentReceipts: receipts,
   };
-});
+}
 
 export default function DashboardRoute() {
   const { metrics, recentReceipts } = useLoaderData<typeof loader>();

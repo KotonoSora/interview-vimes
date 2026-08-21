@@ -1,25 +1,33 @@
-import { ArrowLeft, CheckCircle, Save } from "lucide-react";
-import { useState } from "react";
-import { useFetcher, useLoaderData, useNavigate } from "react-router";
+import { ArrowLeft, CheckCircle, Loader2, Save } from "lucide-react";
+import { useEffect, useState } from "react";
+import { data, useFetcher, useLoaderData, useNavigate } from "react-router";
+
+import type { Route } from "./+types/_app.goods-receipts.new";
 
 import type { ReceiptItemRow } from "~/components/goods-receipt/receipt-items-table";
+import type { GoodsReceiptFormData } from "~/types/goods-receipt.types";
 
 import { ReceiptFooterSection } from "~/components/goods-receipt/receipt-footer-section";
 import { ReceiptGeneralSection } from "~/components/goods-receipt/receipt-general-section";
 import { ReceiptHeaderSection } from "~/components/goods-receipt/receipt-header-section";
 import { ReceiptItemsTable } from "~/components/goods-receipt/receipt-items-table";
 import { Button } from "~/components/ui/button";
+import { toast } from "~/components/ui/toast";
 import { generateReceiptNumber } from "~/lib/formatters";
 import { convertNumberToVietnameseWords } from "~/lib/number-to-words";
 import {
-  withActionContext,
-  withLoaderContext,
-} from "~/lib/route-middleware.server";
+  requestIdContext,
+  traceAndAuthMiddleware,
+} from "~/middleware/auth-trace.server";
 import { masterDataService } from "~/services/master-data.service";
 import { receiptService } from "~/services/receipt.service";
 import { GoodsReceiptFormSchema } from "~/types/goods-receipt.types";
 
-export const loader = withLoaderContext(async (_req, { requestId }) => {
+export const middleware = [traceAndAuthMiddleware];
+
+export async function loader({ context }: Route.LoaderArgs) {
+  const requestId = context.get(requestIdContext) || crypto.randomUUID();
+
   const [orgsRes, warehousesRes, productsRes] = await Promise.all([
     masterDataService.getOrganizations(requestId),
     masterDataService.getWarehouses(requestId),
@@ -32,18 +40,38 @@ export const loader = withLoaderContext(async (_req, { requestId }) => {
     products: productsRes.data || [],
     defaultReceiptNumber: generateReceiptNumber(),
   };
-});
+}
 
-export const action = withActionContext(async (body, { requestId }) => {
-  const validated = GoodsReceiptFormSchema.parse(body);
-  const result = await receiptService.createReceipt(validated, requestId);
-  return { success: true, receiptId: result.data?.receiptId };
-});
+export async function action({ request, context }: Route.ActionArgs) {
+  const requestId = context.get(requestIdContext) || crypto.randomUUID();
+
+  try {
+    const rawData = await request.json();
+    const parsedData: GoodsReceiptFormData =
+      GoodsReceiptFormSchema.parse(rawData);
+    const response = await receiptService.createReceipt(parsedData, requestId);
+
+    return data({
+      success: true,
+      message: "Lưu phiếu nhập kho thành công",
+      receiptId: response.data?.receiptId,
+    });
+  } catch (error: any) {
+    return data(
+      {
+        success: false,
+        message: error.message || "Không thể tạo phiếu nhập kho",
+        errors: error.errors || [],
+      },
+      { status: 400 },
+    );
+  }
+}
 
 export default function NewGoodsReceiptRoute() {
   const { organizations, warehouses, products, defaultReceiptNumber } =
     useLoaderData<typeof loader>();
-  const fetcher = useFetcher();
+  const fetcher = useFetcher<typeof action>();
   const navigate = useNavigate();
 
   const [organizationId, setOrganizationId] = useState(
@@ -53,7 +81,8 @@ export default function NewGoodsReceiptRoute() {
   const [receiptDate, setReceiptDate] = useState(
     new Date().toISOString().split("T")[0],
   );
-  const [receiptType, setReceiptType] = useState("PURCHASE");
+  const [receiptType, setReceiptType] =
+    useState<GoodsReceiptFormData["receiptType"]>("PURCHASE");
   const [debitAccount, setDebitAccount] = useState("152");
   const [creditAccount, setCreditAccount] = useState("331");
 
@@ -94,31 +123,85 @@ export default function NewGoodsReceiptRoute() {
   );
   const totalAmountWords = convertNumberToVietnameseWords(totalAmount);
 
-  const handleSubmit = (status: "DRAFT" | "CONFIRMED") => {
-    const payload = {
+  useEffect(() => {
+    if (!fetcher.data) return;
+
+    if (fetcher.data.success) {
+      toast.add({
+        type: "success",
+        title: "Tạo phiếu thành công",
+        description: `Chứng từ ${receiptNumber} đã được ghi nhận vào hệ thống.`,
+      });
+      navigate("/goods-receipts");
+    } else {
+      toast.add({
+        type: "error",
+        title: "Lỗi lưu dữ liệu",
+        description: fetcher.data.message || "Vui lòng kiểm tra lại dữ liệu.",
+      });
+    }
+  }, [fetcher.data, navigate, receiptNumber]);
+
+  const handleSave = (status: "DRAFT" | "CONFIRMED") => {
+    if (!organizationId) {
+      toast.add({
+        type: "error",
+        title: "Thiếu thông tin",
+        description: "Vui lòng chọn Đơn vị / Phòng ban.",
+      });
+      return;
+    }
+    if (!warehouseId) {
+      toast.add({
+        type: "error",
+        title: "Thiếu thông tin",
+        description: "Vui lòng chọn Kho tiếp nhận.",
+      });
+      return;
+    }
+    if (!delivererName.trim()) {
+      toast.add({
+        type: "error",
+        title: "Thiếu thông tin",
+        description: "Vui lòng nhập Họ tên người giao hàng.",
+      });
+      return;
+    }
+
+    const payload: GoodsReceiptFormData = {
       organizationId,
       receiptNumber,
       receiptDate,
       receiptType,
-      debitAccount,
-      creditAccount,
+      debitAccount: debitAccount || undefined,
+      creditAccount: creditAccount || undefined,
       warehouseId,
       delivererName,
-      actualReceivedDate,
-      docReference,
-      docDate,
-      docOrigin,
-      description,
-      attachedDocCount,
-      creatorName,
-      storekeeperName,
-      chiefAccountantName,
+      actualReceivedDate: actualReceivedDate || undefined,
+      docReference: docReference || undefined,
+      docDate: docDate || undefined,
+      docOrigin: docOrigin || undefined,
+      description: description || undefined,
+      attachedDocCount: attachedDocCount || undefined,
+      creatorName: creatorName || undefined,
+      storekeeperName: storekeeperName || undefined,
+      chiefAccountantName: chiefAccountantName || undefined,
       totalAmountWords,
       status,
-      items,
+      items: items.map((it) => ({
+        productId: it.productId,
+        productNameSnapshot: it.productNameSnapshot,
+        unitSnapshot: it.unitSnapshot,
+        docQty: Number(it.docQty),
+        actualQty: Number(it.actualQty),
+        unitPrice: Number(it.unitPrice),
+        debitAccount: it.debitAccount || undefined,
+        creditAccount: it.creditAccount || undefined,
+        note: it.note || undefined,
+      })),
     };
 
-    fetcher.submit(payload as any, {
+    fetcher.submit(payload, {
       method: "POST",
       encType: "application/json",
     });
@@ -143,7 +226,7 @@ export default function NewGoodsReceiptRoute() {
               Lập Phiếu Nhập Kho Mới
             </h1>
             <p className="text-xs text-muted-foreground">
-              Mẫu số 01-VT ban hành theo Thông tư 200/2014/TT-BTC
+              Mẫu 01-VT ban hành theo Thông tư 200/2014/TT-BTC
             </p>
           </div>
         </div>
@@ -152,16 +235,26 @@ export default function NewGoodsReceiptRoute() {
             variant="outline"
             size="sm"
             disabled={isSubmitting}
-            onClick={() => handleSubmit("DRAFT")}
+            onClick={() => handleSave("DRAFT")}
           >
-            <Save className="h-4 w-4 mr-1.5" /> Lưu Bản Nháp
+            {isSubmitting ? (
+              <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4 mr-1.5" />
+            )}
+            Lưu Bản Nháp
           </Button>
           <Button
             size="sm"
             disabled={isSubmitting}
-            onClick={() => handleSubmit("CONFIRMED")}
+            onClick={() => handleSave("CONFIRMED")}
           >
-            <CheckCircle className="h-4 w-4 mr-1.5" /> Xác Nhận Nhập Kho
+            {isSubmitting ? (
+              <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+            ) : (
+              <CheckCircle className="h-4 w-4 mr-1.5" />
+            )}
+            Xác Nhận Nhập Kho
           </Button>
         </div>
       </div>
@@ -175,7 +268,9 @@ export default function NewGoodsReceiptRoute() {
         receiptDate={receiptDate}
         setReceiptDate={setReceiptDate}
         receiptType={receiptType}
-        setReceiptType={setReceiptType}
+        setReceiptType={(val) =>
+          setReceiptType(val as GoodsReceiptFormData["receiptType"])
+        }
         debitAccount={debitAccount}
         setDebitAccount={setDebitAccount}
         creditAccount={creditAccount}

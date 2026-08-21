@@ -9,6 +9,8 @@ import {
 
 import type { Route } from "./+types/root";
 
+import { Toaster } from "~/components/ui/toast";
+
 import stylesheet from "./app.css?url";
 import printStylesheet from "./print.css?url";
 
@@ -38,6 +40,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </head>
       <body>
         {children}
+        <Toaster />
         <ScrollRestoration />
         <Scripts />
       </body>
