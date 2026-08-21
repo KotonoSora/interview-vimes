@@ -22,6 +22,9 @@
 1. Thiết kết cấu trúc các bảng cơ sở dữ liệu để lưu trữ.
     - [Database Entity Relation Diagram](./docs/database-entity-relation-diagram.md)
     - [Database Design](./docs/database-design.md)
+    - [Database SQL Schema](./sql/01_schema.sql)
+    - [Database SQL Seed](./sql/02_seed.sql)
+    - [Database SQL Security Roles](./sql/03_security_roles.sql)
 2. Thiết kế giao diện nhập liệu.
 3. Viết chương trình cho phép nhập liệu và lưu dữ liệu vào bảng.
 4. Viết unittest. 
