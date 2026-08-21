@@ -6,10 +6,16 @@ export default defineConfig({
   format: ["esm"],
   target: "node24",
   outDir: "dist",
-  clean: true, // Tự động xóa sạch thư mục dist trước khi build
-  sourcemap: false, // Giữ sourcemap để trace lỗi production
-  minify: true, // Giữ code dễ đọc khi debug (có thể đổi sang true nếu muốn nén)
-  splitting: true,
-  dts: false, // API backend không cần xuất file .d.ts
-  shims: true, // Hỗ trợ import.meta và __dirname trong ESM
+  clean: true,
+  bundle: true,
+  splitting: false, // Backend APIs with a single entry point do not need code splitting
+  sourcemap: false,
+  minify: true,
+  shims: true, // Polyfills __dirname and __filename in ESM
+  skipNodeModulesBundle: true, // Keep node_modules external (express, pg, etc.)
+  outExtension() {
+    return {
+      js: ".js", // Guarantees output is always dist/app.js
+    };
+  },
 });

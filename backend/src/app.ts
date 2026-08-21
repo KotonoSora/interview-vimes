@@ -11,7 +11,9 @@ import { errorMiddleware } from "#/presentation/middlewares/error.middleware";
 import { metricsMiddleware } from "#/infrastructure/monitoring/metrics";
 import client from "prom-client";
 
-dotenv.config();
+import path from "node:path";
+
+dotenv.config({ path: path.resolve(process.cwd(), ".env") });
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
