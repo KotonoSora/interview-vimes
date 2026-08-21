@@ -15,6 +15,8 @@ describe("GetOrganizationsUseCase", () => {
           department: "Kho Vận & Vật Tư Y Tế",
         }),
       ]),
+      getActiveWarehouses: vi.fn(),
+      searchProducts: vi.fn(),
     };
 
     const useCase = new GetOrganizationsUseCase(mockRepo);
