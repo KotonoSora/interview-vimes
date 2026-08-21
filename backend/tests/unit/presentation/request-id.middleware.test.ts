@@ -1,16 +1,13 @@
 // tests/unit/presentation/request-id.middleware.test.ts
 import { describe, it, expect, vi } from "vitest";
-import { Response, NextFunction } from "express";
-import {
-  requestIdMiddleware,
-  RequestWithId,
-} from "#/presentation/middlewares/request-id.middleware";
+import { Request, Response, NextFunction } from "express";
+import { requestIdMiddleware } from "#/presentation/middlewares/request-id.middleware";
 
 describe("[Presentation - Middleware] RequestIdMiddleware", () => {
   it("TC-MID-REQID-01: Phải tự động sinh UUID mới và gắn vào req.id cùng Header X-Request-Id nếu client không gửi", () => {
     const req = {
       headers: {},
-    } as RequestWithId;
+    } as unknown as Request;
 
     const setHeaderMock = vi.fn();
     const res = {
@@ -36,7 +33,7 @@ describe("[Presentation - Middleware] RequestIdMiddleware", () => {
       headers: {
         "x-request-id": existingRequestId,
       },
-    } as unknown as RequestWithId;
+    } as unknown as Request;
 
     const setHeaderMock = vi.fn();
     const res = {

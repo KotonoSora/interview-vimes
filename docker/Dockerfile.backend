@@ -1,0 +1,29 @@
+# Stage 1: Build stage
+FROM node:24.19.0-alpine AS builder
+WORKDIR /app
+
+# Thêm tsup.config.* vào lệnh copy
+COPY backend/package*.json backend/tsconfig.json backend/tsup.config.* ./
+RUN npm ci
+
+COPY backend/src ./src
+COPY backend/tests ./tests
+RUN npm run build
+
+# Stage 2: Production runtime stage
+FROM node:24.19.0-alpine AS runner
+WORKDIR /app
+
+ENV NODE_ENV=production
+ENV PORT=3000
+
+COPY backend/package*.json ./
+RUN npm ci --omit=dev
+
+COPY --from=builder /app/dist ./dist
+
+RUN chown -R node:node /app
+USER node
+
+EXPOSE 3000
+CMD ["node", "dist/app.js"]

@@ -41,14 +41,13 @@ describe("[Application - Use Case] UpdateGoodsReceiptUseCase", () => {
   };
 
   const updateDTO: UpdateGoodsReceiptDTO = {
-    organizationId: "f47ac10b-58cc-4372-a567-0e02b2c3d479",
-    warehouseId: "c9a646d3-9c61-4cd7-bf5b-9b4dc257850a",
     delivererName: "Nguyễn Văn B (Updated)",
     items: [
       {
+        lineNo: 1,
         productId: "e7d2b8a0-1234-4567-89ab-cdef01234567",
-        productNameSnapshot: "Thép cuộn Phi 6",
-        unitSnapshot: "Kg",
+        productNameSnapshot: "Cồn Y Tế 70 độ",
+        unitSnapshot: "Chai",
         docQty: 100,
         actualQty: 100,
         unitPrice: 15000,

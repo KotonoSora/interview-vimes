@@ -1,6 +1,7 @@
 // src/domain/entities/goods-receipt.entity.ts
 import { Money } from "#/domain/value-objects/money.vo";
 import { ReceiptItem } from "#/domain/entities/receipt-item.entity";
+import { DomainValidationError } from "#/domain/exceptions/domain.exception";
 
 export type ReceiptType =
   | "PURCHASE"
@@ -26,11 +27,11 @@ export interface GoodsReceiptProps {
   docOrigin?: string;
   debitAccount?: string;
   creditAccount?: string;
-  attachedDocCount?: string;
+  attachedDocCount?: string | number;
   creatorName?: string;
   storekeeperName?: string;
   chiefAccountantName?: string;
-  status: ReceiptStatus;
+  status?: ReceiptStatus;
   items: ReceiptItem[];
 }
 
@@ -49,7 +50,7 @@ export class GoodsReceipt {
   private readonly _docOrigin?: string;
   private readonly _debitAccount?: string;
   private readonly _creditAccount?: string;
-  private readonly _attachedDocCount?: string;
+  private readonly _attachedDocCount?: string | number;
   private readonly _creatorName?: string;
   private readonly _storekeeperName?: string;
   private readonly _chiefAccountantName?: string;
@@ -57,15 +58,7 @@ export class GoodsReceipt {
   private _items: ReceiptItem[];
 
   constructor(props: GoodsReceiptProps) {
-    if (!props.receiptNumber || !props.receiptNumber.trim()) {
-      throw new Error("Số phiếu không được để trống.");
-    }
-    if (!props.delivererName || !props.delivererName.trim()) {
-      throw new Error("Tên người giao hàng không được để trống.");
-    }
-    if (!props.items || props.items.length === 0) {
-      throw new Error("Phiếu nhập kho phải chứa ít nhất một dòng hàng hóa.");
-    }
+    this.validate(props);
 
     this._id = props.id;
     this._receiptNumber = props.receiptNumber;
@@ -85,8 +78,34 @@ export class GoodsReceipt {
     this._creatorName = props.creatorName;
     this._storekeeperName = props.storekeeperName;
     this._chiefAccountantName = props.chiefAccountantName;
-    this._status = props.status;
+    this._status = props.status ?? "DRAFT";
     this._items = [...props.items];
+  }
+
+  public static create(props: GoodsReceiptProps): GoodsReceipt {
+    return new GoodsReceipt(props);
+  }
+
+  private validate(props: GoodsReceiptProps): void {
+    if (!props.receiptNumber || !props.receiptNumber.trim()) {
+      throw new DomainValidationError("Số phiếu không được để trống.");
+    }
+    if (!props.delivererName || !props.delivererName.trim()) {
+      throw new DomainValidationError(
+        "Tên người giao hàng không được để trống.",
+      );
+    }
+    if (!props.organizationId || !props.organizationId.trim()) {
+      throw new DomainValidationError("Đơn vị lập phiếu không được để trống.");
+    }
+    if (!props.warehouseId || !props.warehouseId.trim()) {
+      throw new DomainValidationError("Kho nhập hàng không được để trống.");
+    }
+    if (!props.items || props.items.length === 0) {
+      throw new DomainValidationError(
+        "Phiếu nhập kho phải chứa ít nhất một dòng hàng hóa.",
+      );
+    }
   }
 
   public get id(): string | undefined {
@@ -145,7 +164,7 @@ export class GoodsReceipt {
     return this._creditAccount;
   }
 
-  public get attachedDocCount(): string | undefined {
+  public get attachedDocCount(): string | number | undefined {
     return this._attachedDocCount;
   }
 
@@ -178,15 +197,42 @@ export class GoodsReceipt {
 
   public confirm(): void {
     if (this._status === "CANCELLED") {
-      throw new Error("Không thể duyệt phiếu đã bị hủy.");
+      throw new DomainValidationError("Không thể duyệt phiếu đã bị hủy.");
     }
     this._status = "CONFIRMED";
   }
 
   public cancel(): void {
     if (this._status === "CANCELLED") {
-      throw new Error("Phiếu này đã ở trạng thái hủy trước đó.");
+      throw new DomainValidationError(
+        "Phiếu này đã ở trạng thái hủy trước đó.",
+      );
     }
     this._status = "CANCELLED";
+  }
+
+  public toProps(): GoodsReceiptProps {
+    return {
+      id: this._id,
+      receiptNumber: this._receiptNumber,
+      receiptDate: this._receiptDate,
+      actualReceivedDate: this._actualReceivedDate,
+      organizationId: this._organizationId,
+      warehouseId: this._warehouseId,
+      receiptType: this._receiptType,
+      description: this._description,
+      delivererName: this._delivererName,
+      docReference: this._docReference,
+      docDate: this._docDate,
+      docOrigin: this._docOrigin,
+      debitAccount: this._debitAccount,
+      creditAccount: this._creditAccount,
+      attachedDocCount: this._attachedDocCount,
+      creatorName: this._creatorName,
+      storekeeperName: this._storekeeperName,
+      chiefAccountantName: this._chiefAccountantName,
+      status: this._status,
+      items: [...this._items],
+    };
   }
 }
