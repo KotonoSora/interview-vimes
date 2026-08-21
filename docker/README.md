@@ -4,7 +4,7 @@ Containerized production environment managing the **Nginx Reverse Proxy**, **Pos
 
 ## Service Architecture
 
-* **reverse-proxy** (`nginx:1.31.4-alpine`): Entry point (`:80`) handling reverse proxying, rate limiting (`30r/s`), connection limits (`20/IP`), security headers, and distributed request tracing (`X-Request-Id`).
+* **reverse-proxy** (`nginx:1.31.4-alpine`): Entry point (`:8080`) handling reverse proxying, rate limiting (`30r/s`), connection limits (`20/IP`), security headers, and distributed request tracing (`X-Request-Id`).
 * **postgres-db** (`postgres:18.6-alpine`): Primary database (`:5432`) with persistent storage (`pgdata`) and automated initialization via `sql/` scripts.
 * **backend-api** (`Node.js 24-alpine`): Multi-stage containerized REST API (`:3000`) with built-in health probes and database readiness dependencies.
 
@@ -23,10 +23,10 @@ docker/
 Execute from the project root directory:
 
 ```bash
-# Build and run all services in detached mode
+# Build and start all services in detached mode
 docker compose -f docker/docker-compose.yml up --build -d
 
-# Stream logs across all containers
+# Stream real-time logs across all containers
 docker compose -f docker/docker-compose.yml logs -f
 
 # Stop and remove running containers
@@ -36,11 +36,19 @@ docker compose -f docker/docker-compose.yml down
 
 ## Health Checks
 
+Verify service availability via the following endpoints:
+
 ```bash
 # Nginx Liveness Probe
 curl -i http://localhost:8080/nginx-health
 
-# Backend Application Health
+# Backend Application Health Check
 curl -i http://localhost:8080/healthz
 
 ```
+
+## Web Access
+
+Once the containers are up and running, access the service in your browser:
+
+* **URL:** [http://localhost:8080](http://localhost:8080)
