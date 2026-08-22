@@ -1,4 +1,6 @@
-import { Plus, Trash2 } from "lucide-react";
+import { Package, Plus, Trash2 } from "lucide-react";
+
+import type { MasterProduct } from "~/services/master-data.service";
 
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
@@ -18,34 +20,25 @@ import {
   TableHeader,
   TableRow,
 } from "~/components/ui/table";
+import { formatCurrencyVND } from "~/lib/formatters";
 
 export interface ReceiptItemRow {
   productId: string;
-  productCode?: string;
   productNameSnapshot: string;
   unitSnapshot: string;
   docQty: number;
   actualQty: number;
   unitPrice: number;
-  debitAccount?: string;
-  creditAccount?: string;
-  note?: string;
+  debitAccount?: string | null;
+  creditAccount?: string | null;
+  note?: string | null;
 }
 
-interface ProductCatalogOption {
-  id: string;
-  code: string;
-  name: string;
-  unit: string;
-  defaultPrice: number;
-}
-
-interface ReceiptItemsTableProps {
+interface Props {
   items: ReceiptItemRow[];
   setItems: React.Dispatch<React.SetStateAction<ReceiptItemRow[]>>;
-  products: ProductCatalogOption[];
-  totalAmountWords?: string;
-  isReadOnly?: boolean;
+  products: MasterProduct[];
+  totalAmountWords?: string | null;
 }
 
 export function ReceiptItemsTable({
@@ -53,51 +46,47 @@ export function ReceiptItemsTable({
   setItems,
   products,
   totalAmountWords,
-  isReadOnly = false,
-}: ReceiptItemsTableProps) {
-  const handleProductChange = (index: number, productId: string) => {
-    const p = products.find((prod) => prod.id === productId);
-    if (!p) return;
-    const newItems = [...items];
-    newItems[index] = {
-      ...newItems[index],
-      productId: p.id,
-      productCode: p.code,
-      productNameSnapshot: p.name,
-      unitSnapshot: p.unit,
-      unitPrice: p.defaultPrice || 0,
-    };
-    setItems(newItems);
+}: Props) {
+  const handleProductChange = (index: number, productId: string | null) => {
+    if (!productId) return;
+    const selected = products.find((p) => p.id === productId);
+    if (!selected) return;
+    setItems((prev) => {
+      const next = [...prev];
+      next[index] = {
+        ...next[index],
+        productId: selected.id,
+        productNameSnapshot: selected.name,
+        unitSnapshot: selected.unit,
+        unitPrice: selected.defaultPrice || 0,
+      };
+      return next;
+    });
   };
 
-  const handleFieldChange = (
+  const handleChange = (
     index: number,
     field: keyof ReceiptItemRow,
-    value: any,
+    value: unknown,
   ) => {
-    const newItems = [...items];
-    newItems[index] = { ...newItems[index], [field]: value };
-    setItems(newItems);
+    setItems((prev) => {
+      const next = [...prev];
+      next[index] = { ...next[index], [field]: value };
+      return next;
+    });
   };
 
-  const addItemRow = () => {
-    const firstP = products[0] || {
-      id: "",
-      code: "",
-      name: "",
-      unit: "",
-      defaultPrice: 0,
-    };
-    setItems([
-      ...items,
+  const addItem = () => {
+    const p = products[0];
+    setItems((prev) => [
+      ...prev,
       {
-        productId: firstP.id,
-        productCode: firstP.code,
-        productNameSnapshot: firstP.name,
-        unitSnapshot: firstP.unit,
+        productId: p?.id || "",
+        productNameSnapshot: p?.name || "Vật tư",
+        unitSnapshot: p?.unit || "Cái",
         docQty: 1,
         actualQty: 1,
-        unitPrice: firstP.defaultPrice || 0,
+        unitPrice: p?.defaultPrice || 0,
         debitAccount: "152",
         creditAccount: "331",
         note: "",
@@ -105,182 +94,187 @@ export function ReceiptItemsTable({
     ]);
   };
 
-  const removeItemRow = (index: number) => {
+  const removeItem = (index: number) => {
     if (items.length <= 1) return;
-    setItems(items.filter((_, i) => i !== index));
+    setItems((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const totalAmount = items.reduce(
-    (acc, it) => acc + Number(it.actualQty || 0) * Number(it.unitPrice || 0),
+  const total = items.reduce(
+    (sum, it) => sum + Number(it.actualQty || 0) * Number(it.unitPrice || 0),
     0,
   );
 
   return (
-    <Card>
-      <CardHeader className="pb-3 border-b flex flex-row items-center justify-between">
-        <div>
-          <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            3. Danh Sách Chi Tiết Vật Tư, Hàng Hóa Thực Nhập (Mục [6], [7], [8])
-          </CardTitle>
-          <p className="text-[11px] text-muted-foreground mt-0.5">
-            Thành tiền Cột 4 = Số lượng thực nhập (Cột 2) × Đơn giá (Cột 3)
-          </p>
-        </div>
-        {!isReadOnly && (
-          <Button size="sm" variant="secondary" onClick={addItemRow}>
-            <Plus className="h-4 w-4 mr-1" /> Thêm dòng
-          </Button>
-        )}
+    <Card className="overflow-hidden shadow-sm">
+      <CardHeader className="py-2.5 px-4 border-b flex flex-row items-center justify-between">
+        <CardTitle className="text-xs font-semibold flex items-center gap-2">
+          <Package className="h-4 w-4 text-primary" /> Danh Sách Vật Tư Thực
+          Nhập ({items.length})
+        </CardTitle>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={addItem}
+          type="button"
+          className="h-7 text-xs"
+        >
+          <Plus className="h-3.5 w-3.5 mr-1" /> Thêm dòng
+        </Button>
       </CardHeader>
       <CardContent className="p-0 overflow-x-auto">
         <Table>
           <TableHeader>
-            <TableRow className="bg-muted/40">
-              <TableHead className="w-[45px] text-center">STT</TableHead>
-              <TableHead className="w-[280px]">
-                Tên, quy cách vật tư (Cột B)
+            <TableRow className="bg-muted/40 text-xs">
+              <TableHead className="w-10 text-center font-semibold">
+                STT
               </TableHead>
-              <TableHead className="w-[90px]">Mã (Cột C)</TableHead>
-              <TableHead className="w-[70px]">ĐVT (D)</TableHead>
-              <TableHead className="w-[100px] text-right">
-                SL C.Từ (1)
+              <TableHead className="min-w-[280px] font-semibold">
+                Tên, quy cách vật tư / hàng hóa
               </TableHead>
-              <TableHead className="w-[100px] text-right">
-                SL Thực (2)
+              <TableHead className="w-20 text-center font-semibold">
+                ĐVT
               </TableHead>
-              <TableHead className="w-[120px] text-right">
-                Đơn giá (3)
+              <TableHead className="w-28 text-right font-semibold">
+                SL Chứng từ
               </TableHead>
-              <TableHead className="w-[130px] text-right">
-                Thành tiền (4)
+              <TableHead className="w-28 text-right font-semibold">
+                SL Thực nhập
               </TableHead>
-              <TableHead className="w-[150px]">Ghi chú</TableHead>
-              {!isReadOnly && <TableHead className="w-[40px]"></TableHead>}
+              <TableHead className="w-32 text-right font-semibold">
+                Đơn giá (VNĐ)
+              </TableHead>
+              <TableHead className="w-36 text-right font-semibold">
+                Thành tiền
+              </TableHead>
+              <TableHead className="w-10 text-center"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {items.map((row, idx) => {
-              const amount =
-                Number(row.actualQty || 0) * Number(row.unitPrice || 0);
+              const selectedProduct = products.find(
+                (p) => p.id === row.productId,
+              );
+              const displayName = selectedProduct
+                ? `${selectedProduct.code ? `[${selectedProduct.code}] ` : ""}${selectedProduct.name}`
+                : row.productNameSnapshot || "Chọn vật tư...";
+
               return (
-                <TableRow key={idx}>
-                  <TableCell className="text-center font-medium text-xs">
+                <TableRow key={idx} className="hover:bg-muted/20">
+                  <TableCell className="text-center text-xs font-medium">
                     {idx + 1}
                   </TableCell>
+
                   <TableCell>
-                    {isReadOnly ? (
-                      <span className="font-medium text-xs">
-                        {row.productNameSnapshot}
-                      </span>
-                    ) : (
-                      <Select
-                        value={row.productId}
-                        onValueChange={(val) =>
-                          handleProductChange(idx, val || "")
-                        }
-                      >
-                        <SelectTrigger className="h-8 text-xs">
-                          <SelectValue placeholder="Chọn vật tư" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {products.map((p) => (
-                            <SelectItem key={p.id} value={p.id}>
-                              {p.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    )}
+                    <Select
+                      value={row.productId}
+                      onValueChange={(val: string | null) =>
+                        handleProductChange(idx, val)
+                      }
+                    >
+                      <SelectTrigger className="h-8 text-xs font-medium w-full text-left truncate">
+                        <SelectValue placeholder="Chọn vật tư">
+                          {displayName}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent className="max-h-64 min-w-[320px]">
+                        {products.map((p) => (
+                          <SelectItem
+                            key={p.id}
+                            value={p.id}
+                            className="text-xs"
+                          >
+                            <span className="font-mono font-semibold text-primary mr-1.5">
+                              [{p.code}]
+                            </span>
+                            <span>{p.name}</span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </TableCell>
-                  <TableCell className="text-xs text-muted-foreground">
-                    {row.productCode || "—"}
+
+                  <TableCell className="text-center text-xs text-muted-foreground font-medium">
+                    {row.unitSnapshot || selectedProduct?.unit || "—"}
                   </TableCell>
-                  <TableCell className="text-xs">{row.unitSnapshot}</TableCell>
+
                   <TableCell>
                     <Input
                       type="number"
-                      step="any"
                       min="0"
-                      disabled={isReadOnly}
-                      className="h-8 text-right text-xs"
+                      step="0.001"
                       value={row.docQty}
                       onChange={(e) =>
-                        handleFieldChange(idx, "docQty", e.target.value)
+                        handleChange(idx, "docQty", Number(e.target.value))
                       }
+                      className="h-8 text-xs text-right font-mono"
                     />
                   </TableCell>
+
                   <TableCell>
                     <Input
                       type="number"
-                      step="any"
                       min="0"
-                      disabled={isReadOnly}
-                      className="h-8 text-right text-xs font-semibold"
+                      step="0.001"
                       value={row.actualQty}
                       onChange={(e) =>
-                        handleFieldChange(idx, "actualQty", e.target.value)
+                        handleChange(idx, "actualQty", Number(e.target.value))
                       }
+                      className="h-8 text-xs text-right font-mono font-semibold"
                     />
                   </TableCell>
+
                   <TableCell>
                     <Input
                       type="number"
-                      step="any"
                       min="0"
-                      disabled={isReadOnly}
-                      className="h-8 text-right text-xs"
+                      step="100"
                       value={row.unitPrice}
                       onChange={(e) =>
-                        handleFieldChange(idx, "unitPrice", e.target.value)
+                        handleChange(idx, "unitPrice", Number(e.target.value))
                       }
+                      className="h-8 text-xs text-right font-mono"
                     />
                   </TableCell>
-                  <TableCell className="text-right font-semibold text-xs">
-                    {new Intl.NumberFormat("vi-VN").format(amount)} ₫
+
+                  <TableCell className="text-right font-mono font-bold text-xs text-primary whitespace-nowrap">
+                    {formatCurrencyVND(
+                      Number(row.actualQty || 0) * Number(row.unitPrice || 0),
+                    )}
                   </TableCell>
-                  <TableCell>
-                    <Input
-                      disabled={isReadOnly}
-                      placeholder="Hao hụt..."
-                      className="h-8 text-xs"
-                      value={row.note || ""}
-                      onChange={(e) =>
-                        handleFieldChange(idx, "note", e.target.value)
-                      }
-                    />
+
+                  <TableCell className="text-center">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      type="button"
+                      onClick={() => removeItem(idx)}
+                      disabled={items.length <= 1}
+                      className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
                   </TableCell>
-                  {!isReadOnly && (
-                    <TableCell>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                        disabled={items.length <= 1}
-                        onClick={() => removeItemRow(idx)}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </TableCell>
-                  )}
                 </TableRow>
               );
             })}
           </TableBody>
         </Table>
 
-        {/* Tổng cộng & bằng chữ */}
-        <div className="p-4 bg-muted/20 border-t space-y-1.5">
-          <div className="flex justify-between items-center text-sm font-semibold">
-            <span>Cộng thành tiền (Cột 4):</span>
-            <span className="text-base text-primary">
-              {new Intl.NumberFormat("vi-VN").format(totalAmount)} VNĐ
+        <div className="p-3 bg-muted/20 border-t flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-xs">
+          <div className="italic text-muted-foreground">
+            Bằng chữ:{" "}
+            <span className="font-semibold text-foreground">
+              {totalAmountWords || "—"}
             </span>
           </div>
-          {totalAmountWords && (
-            <div className="text-xs text-muted-foreground italic">
-              <strong>Bằng chữ (Mục [10]):</strong> {totalAmountWords}
-            </div>
-          )}
+          <div className="flex items-center gap-2 font-mono">
+            <span className="font-semibold text-muted-foreground uppercase text-[11px]">
+              Tổng tiền thanh toán:
+            </span>
+            <span className="text-sm font-bold text-primary">
+              {formatCurrencyVND(total)}
+            </span>
+          </div>
         </div>
       </CardContent>
     </Card>

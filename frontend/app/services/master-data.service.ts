@@ -1,120 +1,86 @@
-import type { OrganizationItem } from "~/components/master-data/organization-table-section";
-import type { ProductItem } from "~/components/master-data/product-table-section";
-import type { WarehouseItem } from "~/components/master-data/warehouse-table-section";
 import type { BaseApiResponse } from "~/types/api.types";
 
 import { apiClient } from "~/lib/api-client";
 
+export interface MasterProduct {
+  id: string;
+  code: string;
+  name: string;
+  unit: string;
+  defaultPrice: number;
+}
+
+export interface MasterWarehouse {
+  id: string;
+  code: string;
+  name: string;
+  location?: string;
+}
+
+export interface MasterOrganization {
+  id: string;
+  code: string;
+  name: string;
+  department?: string;
+}
+
 export const masterDataService = {
-  // --- Danh mục Vật tư / Hàng hóa ---
-  getProducts: async (search?: string, requestId?: string) => {
-    return apiClient<BaseApiResponse<ProductItem[]>>("/master-data/products", {
+  async getProducts(search?: string, requestId?: string) {
+    const res = await apiClient<any>("/master-data/products", {
       method: "GET",
-      params: { search },
+      params: search ? { search } : undefined,
       requestId,
     });
+    const listRaw = Array.isArray(res?.data)
+      ? res.data
+      : Array.isArray(res)
+        ? res
+        : [];
+    const list: MasterProduct[] = listRaw.map((p: any) => ({
+      id: p.id,
+      code: p.code || p.product_code || "",
+      name: p.name || p.product_name || "",
+      unit: p.unit || "Cái",
+      defaultPrice: Number(p.defaultPrice ?? p.default_price ?? p.price ?? 0),
+    }));
+    return { success: true, data: list };
   },
 
-  createProduct: async (payload: Partial<ProductItem>, requestId?: string) => {
-    return apiClient<BaseApiResponse<ProductItem>>("/master-data/products", {
-      method: "POST",
-      body: JSON.stringify(payload),
+  async getWarehouses(requestId?: string) {
+    const res = await apiClient<any>("/master-data/warehouses", {
+      method: "GET",
       requestId,
     });
+    const listRaw = Array.isArray(res?.data)
+      ? res.data
+      : Array.isArray(res)
+        ? res
+        : [];
+    const list: MasterWarehouse[] = listRaw.map((w: any) => ({
+      id: w.id,
+      code: w.code || w.warehouse_code || "",
+      name: w.name || w.warehouse_name || "",
+      location: w.location || w.warehouse_location || undefined,
+    }));
+    return { success: true, data: list };
   },
 
-  updateProduct: async (
-    id: string,
-    payload: Partial<ProductItem>,
-    requestId?: string,
-  ) => {
-    return apiClient<BaseApiResponse<ProductItem>>(
-      `/master-data/products/${id}`,
-      {
-        method: "PUT",
-        body: JSON.stringify(payload),
-        requestId,
-      },
-    );
-  },
-
-  // --- Danh mục Kho bãi ---
-  getWarehouses: async (requestId?: string) => {
-    return apiClient<BaseApiResponse<WarehouseItem[]>>(
-      "/master-data/warehouses",
-      {
-        method: "GET",
-        requestId,
-      },
-    );
-  },
-
-  createWarehouse: async (
-    payload: Partial<WarehouseItem>,
-    requestId?: string,
-  ) => {
-    return apiClient<BaseApiResponse<WarehouseItem>>(
-      "/master-data/warehouses",
-      {
-        method: "POST",
-        body: JSON.stringify(payload),
-        requestId,
-      },
-    );
-  },
-
-  updateWarehouse: async (
-    id: string,
-    payload: Partial<WarehouseItem>,
-    requestId?: string,
-  ) => {
-    return apiClient<BaseApiResponse<WarehouseItem>>(
-      `/master-data/warehouses/${id}`,
-      {
-        method: "PUT",
-        body: JSON.stringify(payload),
-        requestId,
-      },
-    );
-  },
-
-  // --- Danh mục Đơn vị / Phòng ban ---
-  getOrganizations: async (requestId?: string) => {
-    return apiClient<BaseApiResponse<OrganizationItem[]>>(
-      "/master-data/organizations",
-      {
-        method: "GET",
-        requestId,
-      },
-    );
-  },
-
-  createOrganization: async (
-    payload: Partial<OrganizationItem>,
-    requestId?: string,
-  ) => {
-    return apiClient<BaseApiResponse<OrganizationItem>>(
-      "/master-data/organizations",
-      {
-        method: "POST",
-        body: JSON.stringify(payload),
-        requestId,
-      },
-    );
-  },
-
-  updateOrganization: async (
-    id: string,
-    payload: Partial<OrganizationItem>,
-    requestId?: string,
-  ) => {
-    return apiClient<BaseApiResponse<OrganizationItem>>(
-      `/master-data/organizations/${id}`,
-      {
-        method: "PUT",
-        body: JSON.stringify(payload),
-        requestId,
-      },
-    );
+  async getOrganizations(requestId?: string) {
+    const res = await apiClient<any>("/master-data/organizations", {
+      method: "GET",
+      requestId,
+    });
+    const listRaw = Array.isArray(res?.data)
+      ? res.data
+      : Array.isArray(res)
+        ? res
+        : [];
+    const list: MasterOrganization[] = listRaw.map((o: any) => ({
+      id: o.id,
+      code: o.code || o.org_code || "",
+      name: o.name || o.org_name || "",
+      department: o.department || undefined,
+    }));
+    return { success: true, data: list };
   },
 };

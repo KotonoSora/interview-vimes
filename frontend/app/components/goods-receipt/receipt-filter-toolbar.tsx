@@ -1,8 +1,9 @@
 import { Search } from "lucide-react";
-import { Form, useNavigation } from "react-router";
+import { useSubmit } from "react-router";
 
-import { Button } from "~/components/ui/button";
-import { Card, CardContent } from "~/components/ui/card";
+import type { MasterWarehouse } from "~/services/master-data.service";
+
+import { DatePicker } from "~/components/ui/date-picker";
 import { Input } from "~/components/ui/input";
 import {
   Select,
@@ -12,102 +13,128 @@ import {
   SelectValue,
 } from "~/components/ui/select";
 
-interface WarehouseOption {
-  id: string;
-  name: string;
-}
-
-interface ReceiptFilterToolbarProps {
-  warehouses: WarehouseOption[];
+interface Props {
+  warehouses: MasterWarehouse[];
   currentFilters: {
     search: string;
     warehouseId: string;
     status: string;
-    fromDate?: string;
-    toDate?: string;
+    fromDate: string;
+    toDate: string;
   };
 }
 
-export function ReceiptFilterToolbar({
-  warehouses,
-  currentFilters,
-}: ReceiptFilterToolbarProps) {
-  const navigation = useNavigation();
-  const isFiltering = navigation.state === "loading";
+export function ReceiptFilterToolbar({ warehouses, currentFilters }: Props) {
+  const submit = useSubmit();
+
+  const handleFilterChange = (key: string, value: string | null) => {
+    const params = new URLSearchParams(window.location.search);
+    if (value && value !== "all") {
+      params.set(key, value);
+    } else {
+      params.delete(key);
+    }
+    params.set("page", "1");
+    submit(params, { method: "get" });
+  };
 
   return (
-    <Card>
-      <CardContent className="p-4">
-        <Form
-          method="get"
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3"
+    <div className="flex flex-wrap items-center gap-2.5 p-2.5 bg-card border rounded-lg shadow-sm">
+      {/* Search Box */}
+      <div className="relative flex-1 min-w-[240px]">
+        <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+        <Input
+          placeholder="Tìm theo số phiếu, người giao, CT gốc..."
+          defaultValue={currentFilters.search}
+          onChange={(e) => {
+            const val = e.target.value;
+            if (val === "" || val.length >= 2) {
+              handleFilterChange("search", val);
+            }
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              handleFilterChange(
+                "search",
+                (e.target as HTMLInputElement).value,
+              );
+            }
+          }}
+          className="pl-8 h-8 text-xs bg-background"
+        />
+      </div>
+
+      {/* Kho tiếp nhận */}
+      <div className="min-w-[220px] max-w-[280px]">
+        <Select
+          defaultValue={currentFilters.warehouseId || "all"}
+          onValueChange={(val: string | null) =>
+            handleFilterChange("warehouseId", val)
+          }
         >
-          <div className="relative">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              name="search"
-              placeholder="Số phiếu, người giao..."
-              defaultValue={currentFilters.search}
-              className="pl-8 text-sm"
-            />
-          </div>
+          <SelectTrigger className="h-8 text-xs bg-background w-full">
+            <SelectValue placeholder="Tất cả kho tiếp nhận" />
+          </SelectTrigger>
+          <SelectContent className="min-w-[260px]">
+            <SelectItem value="all" className="text-xs">
+              Tất cả kho tiếp nhận
+            </SelectItem>
+            {warehouses.map((w) => (
+              <SelectItem key={w.id} value={w.id} className="text-xs">
+                {w.code ? `[${w.code}] ` : ""}
+                {w.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
-          <Select
-            name="warehouseId"
-            defaultValue={currentFilters.warehouseId || "all"}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Chọn kho nhập" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tất cả các kho</SelectItem>
-              {warehouses.map((wh) => (
-                <SelectItem key={wh.id} value={wh.id}>
-                  {wh.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+      {/* Trạng thái */}
+      <div className="min-w-[150px]">
+        <Select
+          defaultValue={currentFilters.status || "all"}
+          onValueChange={(val: string | null) =>
+            handleFilterChange("status", val)
+          }
+        >
+          <SelectTrigger className="h-8 text-xs bg-background w-full">
+            <SelectValue placeholder="Trạng thái" />
+          </SelectTrigger>
+          <SelectContent className="min-w-[160px]">
+            <SelectItem value="all" className="text-xs">
+              Mọi trạng thái
+            </SelectItem>
+            <SelectItem value="CONFIRMED" className="text-xs">
+              Đã nhập kho
+            </SelectItem>
+            <SelectItem value="DRAFT" className="text-xs">
+              Bản nháp
+            </SelectItem>
+            <SelectItem value="CANCELLED" className="text-xs">
+              Đã hủy
+            </SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
 
-          <Select name="status" defaultValue={currentFilters.status || "all"}>
-            <SelectTrigger>
-              <SelectValue placeholder="Trạng thái" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tất cả trạng thái</SelectItem>
-              <SelectItem value="CONFIRMED">Đã nhập kho (CONFIRMED)</SelectItem>
-              <SelectItem value="DRAFT">Bản nháp (DRAFT)</SelectItem>
-              <SelectItem value="CANCELLED">Đã hủy (CANCELLED)</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <div className="flex gap-2">
-            <Input
-              type="date"
-              name="fromDate"
-              defaultValue={currentFilters.fromDate}
-              className="text-xs px-2"
-              title="Từ ngày"
-            />
-            <Input
-              type="date"
-              name="toDate"
-              defaultValue={currentFilters.toDate}
-              className="text-xs px-2"
-              title="Đến ngày"
-            />
-          </div>
-
-          <Button
-            type="submit"
-            variant="secondary"
-            disabled={isFiltering}
-            className="w-full"
-          >
-            {isFiltering ? "Đang lọc..." : "Áp dụng lọc"}
-          </Button>
-        </Form>
-      </CardContent>
-    </Card>
+      {/* DatePicker */}
+      <div className="flex items-center gap-1.5 shrink-0">
+        <div className="w-[135px]">
+          <DatePicker
+            value={currentFilters.fromDate}
+            onChange={(val) => handleFilterChange("fromDate", val || null)}
+            placeholder="Từ ngày"
+          />
+        </div>
+        <span className="text-xs text-muted-foreground">-</span>
+        <div className="w-[135px]">
+          <DatePicker
+            value={currentFilters.toDate}
+            onChange={(val) => handleFilterChange("toDate", val || null)}
+            placeholder="Đến ngày"
+          />
+        </div>
+      </div>
+    </div>
   );
 }

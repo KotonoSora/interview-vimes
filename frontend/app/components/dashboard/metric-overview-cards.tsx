@@ -1,82 +1,100 @@
-import { AlertTriangle, Clock, DollarSign, FileText } from "lucide-react";
+import { Ban, CheckCircle2, Clock, FileText } from "lucide-react";
 
-import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
+import { Card, CardContent } from "~/components/ui/card";
 
-interface MetricsData {
-  totalReceiptsMonth: number;
-  totalValueMonth: number;
-  pendingDraftCount: number;
-  lowStockAlertCount: number;
+interface MetricProps {
+  totalReceipts: number;
+  draftCount: number;
+  confirmedCount: number;
+  cancelledCount: number;
 }
 
-interface MetricOverviewCardsProps {
-  metrics?: MetricsData;
-}
-
-export function MetricOverviewCards({
-  metrics = {
-    totalReceiptsMonth: 28,
-    totalValueMonth: 485920000,
-    pendingDraftCount: 3,
-    lowStockAlertCount: 2,
-  },
-}: MetricOverviewCardsProps) {
-  const cards = [
-    {
-      title: "Phiếu Nhập Trong Tháng",
-      value: `${metrics.totalReceiptsMonth} phiếu`,
-      description: "Tăng 12% so với tháng trước",
-      icon: FileText,
-      iconColor: "text-blue-600 bg-blue-100 dark:bg-blue-900/30",
-    },
-    {
-      title: "Tổng Giá Trị Nhập Kho",
-      value: `${new Intl.NumberFormat("vi-VN").format(metrics.totalValueMonth)} ₫`,
-      description: "Tính trên các phiếu đã CONFIRMED",
-      icon: DollarSign,
-      iconColor: "text-emerald-600 bg-emerald-100 dark:bg-emerald-900/30",
-    },
-    {
-      title: "Phiếu Nháp Cần Xử Lý",
-      value: `${metrics.pendingDraftCount} chứng từ`,
-      description: "Chưa hoàn tất xác nhận nhập kho",
-      icon: Clock,
-      iconColor: "text-amber-600 bg-amber-100 dark:bg-amber-900/30",
-    },
-    {
-      title: "Cảnh Báo Tồn Kho Thấp",
-      value: `${metrics.lowStockAlertCount} mặt hàng`,
-      description: "Dưới mức tồn kho tối thiểu",
-      icon: AlertTriangle,
-      iconColor: "text-rose-600 bg-rose-100 dark:bg-rose-900/30",
-    },
-  ];
-
+export function MetricOverviewCards({ metrics }: { metrics: MetricProps }) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      {cards.map((card, index) => {
-        const Icon = card.icon;
-        return (
-          <Card key={index}>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs font-medium text-muted-foreground">
-                {card.title}
-              </CardTitle>
-              <div className={`p-2 rounded-lg ${card.iconColor}`}>
-                <Icon className="h-4 w-4" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-xl font-bold tracking-tight">
-                {card.value}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                {card.description}
-              </p>
-            </CardContent>
-          </Card>
-        );
-      })}
+      {/* 1. Tổng chứng từ */}
+      <Card className="border shadow-sm">
+        <CardContent className="p-4 flex items-center justify-between">
+          <div className="space-y-1">
+            <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+              Tổng Chứng Từ Phát Sinh
+            </p>
+            <p className="text-2xl font-bold font-mono text-foreground">
+              {metrics.totalReceipts}
+            </p>
+            <p className="text-[11px] text-muted-foreground">
+              Phiếu Nhập Kho (Mẫu 01 - VT)
+            </p>
+          </div>
+          <div className="h-10 w-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+            <FileText className="h-5 w-5" />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 2. Đã nhập kho */}
+      <Card className="border shadow-sm">
+        <CardContent className="p-4 flex items-center justify-between">
+          <div className="space-y-1">
+            <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+              Đã Nhập Kho (CONFIRMED)
+            </p>
+            <p className="text-2xl font-bold font-mono text-emerald-600 dark:text-emerald-400">
+              {metrics.confirmedCount}
+            </p>
+            <p className="text-[11px] text-muted-foreground">
+              Chứng từ hợp lệ đã ghi sổ
+            </p>
+          </div>
+          <div className="h-10 w-10 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
+            <CheckCircle2 className="h-5 w-5" />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 3. Phiếu nháp */}
+      <Card
+        className={`border shadow-sm ${metrics.draftCount > 0 ? "border-amber-500/40 bg-amber-500/5" : ""}`}
+      >
+        <CardContent className="p-4 flex items-center justify-between">
+          <div className="space-y-1">
+            <p className="text-[11px] font-medium text-amber-700 dark:text-amber-400 uppercase tracking-wider">
+              Bản Nháp (DRAFT)
+            </p>
+            <p className="text-2xl font-bold font-mono text-amber-600 dark:text-amber-400">
+              {metrics.draftCount}
+            </p>
+            <p className="text-[11px] text-muted-foreground">
+              {metrics.draftCount > 0
+                ? "Cần kiểm đếm & hoàn tất"
+                : "Không có phiếu tồn"}
+            </p>
+          </div>
+          <div className="h-10 w-10 rounded-lg bg-amber-500/10 text-amber-600 flex items-center justify-center shrink-0">
+            <Clock className="h-5 w-5" />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 4. Phiếu đã hủy */}
+      <Card className="border shadow-sm">
+        <CardContent className="p-4 flex items-center justify-between">
+          <div className="space-y-1">
+            <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+              Đã Hủy (CANCELLED)
+            </p>
+            <p className="text-2xl font-bold font-mono text-muted-foreground">
+              {metrics.cancelledCount}
+            </p>
+            <p className="text-[11px] text-muted-foreground">
+              Chứng từ vô hiệu hóa
+            </p>
+          </div>
+          <div className="h-10 w-10 rounded-lg bg-muted text-muted-foreground flex items-center justify-center shrink-0">
+            <Ban className="h-5 w-5" />
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
