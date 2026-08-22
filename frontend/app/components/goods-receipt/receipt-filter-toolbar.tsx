@@ -1,9 +1,10 @@
 import { Search } from "lucide-react";
+import * as React from "react";
 import { useSubmit } from "react-router";
 
 import type { MasterWarehouse } from "~/services/master-data.service";
 
-import { DatePicker } from "~/components/ui/date-picker";
+import { DatePicker } from "~/components/shared/date-picker";
 import { Input } from "~/components/ui/input";
 import {
   Select,
@@ -24,8 +25,25 @@ interface Props {
   };
 }
 
+const statusOptions = [
+  { value: "all", label: "Mọi trạng thái" },
+  { value: "CONFIRMED", label: "Đã nhập kho" },
+  { value: "DRAFT", label: "Bản nháp" },
+  { value: "CANCELLED", label: "Đã hủy" },
+];
+
 export function ReceiptFilterToolbar({ warehouses, currentFilters }: Props) {
   const submit = useSubmit();
+
+  const warehouseOptions = React.useMemo(() => {
+    return [
+      { value: "all", label: "Tất cả kho tiếp nhận" },
+      ...warehouses.map((w) => ({
+        value: w.id,
+        label: w.code ? `[${w.code}] ${w.name}` : w.name,
+      })),
+    ];
+  }, [warehouses]);
 
   const handleFilterChange = (key: string, value: string | null) => {
     const params = new URLSearchParams(window.location.search);
@@ -40,7 +58,6 @@ export function ReceiptFilterToolbar({ warehouses, currentFilters }: Props) {
 
   return (
     <div className="flex flex-wrap items-center gap-2.5 p-2.5 bg-card border rounded-lg shadow-sm">
-      {/* Search Box */}
       <div className="relative flex-1 min-w-[240px]">
         <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
         <Input
@@ -64,9 +81,9 @@ export function ReceiptFilterToolbar({ warehouses, currentFilters }: Props) {
         />
       </div>
 
-      {/* Kho tiếp nhận */}
       <div className="min-w-[220px] max-w-[280px]">
         <Select
+          items={warehouseOptions}
           defaultValue={currentFilters.warehouseId || "all"}
           onValueChange={(val: string | null) =>
             handleFilterChange("warehouseId", val)
@@ -76,22 +93,18 @@ export function ReceiptFilterToolbar({ warehouses, currentFilters }: Props) {
             <SelectValue placeholder="Tất cả kho tiếp nhận" />
           </SelectTrigger>
           <SelectContent className="min-w-[260px]">
-            <SelectItem value="all" className="text-xs">
-              Tất cả kho tiếp nhận
-            </SelectItem>
-            {warehouses.map((w) => (
-              <SelectItem key={w.id} value={w.id} className="text-xs">
-                {w.code ? `[${w.code}] ` : ""}
-                {w.name}
+            {warehouseOptions.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value} className="text-xs">
+                {opt.label}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
 
-      {/* Trạng thái */}
       <div className="min-w-[150px]">
         <Select
+          items={statusOptions}
           defaultValue={currentFilters.status || "all"}
           onValueChange={(val: string | null) =>
             handleFilterChange("status", val)
@@ -101,37 +114,35 @@ export function ReceiptFilterToolbar({ warehouses, currentFilters }: Props) {
             <SelectValue placeholder="Trạng thái" />
           </SelectTrigger>
           <SelectContent className="min-w-[160px]">
-            <SelectItem value="all" className="text-xs">
-              Mọi trạng thái
-            </SelectItem>
-            <SelectItem value="CONFIRMED" className="text-xs">
-              Đã nhập kho
-            </SelectItem>
-            <SelectItem value="DRAFT" className="text-xs">
-              Bản nháp
-            </SelectItem>
-            <SelectItem value="CANCELLED" className="text-xs">
-              Đã hủy
-            </SelectItem>
+            {statusOptions.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value} className="text-xs">
+                {opt.label}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
 
-      {/* DatePicker */}
       <div className="flex items-center gap-1.5 shrink-0">
         <div className="w-[135px]">
           <DatePicker
             value={currentFilters.fromDate}
-            onChange={(val) => handleFilterChange("fromDate", val || null)}
+            onChange={(val: string) =>
+              handleFilterChange("fromDate", val || null)
+            }
             placeholder="Từ ngày"
+            className="h-8 text-xs"
           />
         </div>
         <span className="text-xs text-muted-foreground">-</span>
         <div className="w-[135px]">
           <DatePicker
             value={currentFilters.toDate}
-            onChange={(val) => handleFilterChange("toDate", val || null)}
+            onChange={(val: string) =>
+              handleFilterChange("toDate", val || null)
+            }
             placeholder="Đến ngày"
+            className="h-8 text-xs"
           />
         </div>
       </div>

@@ -1,4 +1,5 @@
 import { Package, Plus, Trash2 } from "lucide-react";
+import * as React from "react";
 
 import type { MasterProduct } from "~/services/master-data.service";
 
@@ -47,6 +48,14 @@ export function ReceiptItemsTable({
   products,
   totalAmountWords,
 }: Props) {
+  // Mảng lookup items chuẩn cho Base UI Select
+  const productSelectItems = React.useMemo(() => {
+    return products.map((p) => ({
+      value: p.id,
+      label: p.code ? `[${p.code}] ${p.name}` : p.name,
+    }));
+  }, [products]);
+
   const handleProductChange = (index: number, productId: string | null) => {
     if (!productId) return;
     const selected = products.find((p) => p.id === productId);
@@ -105,48 +114,54 @@ export function ReceiptItemsTable({
   );
 
   return (
-    <Card className="overflow-hidden shadow-sm">
-      <CardHeader className="py-2.5 px-4 border-b flex flex-row items-center justify-between">
-        <CardTitle className="text-xs font-semibold flex items-center gap-2">
-          <Package className="h-4 w-4 text-primary" /> Danh Sách Vật Tư Thực
-          Nhập ({items.length})
+    <Card className="overflow-hidden shadow-sm border">
+      <CardHeader className="py-3 px-5 border-b flex flex-row items-center justify-between bg-muted/20">
+        <CardTitle className="text-sm font-bold flex items-center gap-2">
+          <Package className="h-5 w-5 text-primary" /> Chi Tiết Vật Tư / Hàng
+          Hóa Thực Nhập ({items.length})
         </CardTitle>
         <Button
           size="sm"
-          variant="outline"
           onClick={addItem}
           type="button"
-          className="h-7 text-xs"
+          className="h-8 text-xs font-semibold"
         >
-          <Plus className="h-3.5 w-3.5 mr-1" /> Thêm dòng
+          <Plus className="h-4 w-4 mr-1.5" /> Thêm Dòng Vật Tư
         </Button>
       </CardHeader>
       <CardContent className="p-0 overflow-x-auto">
         <Table>
           <TableHeader>
-            <TableRow className="bg-muted/40 text-xs">
-              <TableHead className="w-10 text-center font-semibold">
+            <TableRow className="bg-muted/40 text-xs sm:text-sm">
+              <TableHead className="w-12 text-center font-semibold">
                 STT
               </TableHead>
-              <TableHead className="min-w-[280px] font-semibold">
-                Tên, quy cách vật tư / hàng hóa
+              <TableHead className="min-w-[300px] font-semibold">
+                Tên, quy cách vật tư / hàng hóa{" "}
+                <span className="text-destructive font-bold">*</span>
               </TableHead>
-              <TableHead className="w-20 text-center font-semibold">
+              <TableHead className="w-24 text-center font-semibold">
                 ĐVT
               </TableHead>
-              <TableHead className="w-28 text-right font-semibold">
-                SL Chứng từ
-              </TableHead>
-              <TableHead className="w-28 text-right font-semibold">
-                SL Thực nhập
+              <TableHead className="w-32 text-right font-semibold">
+                SL Chứng từ{" "}
+                <span className="text-destructive font-bold">*</span>
               </TableHead>
               <TableHead className="w-32 text-right font-semibold">
-                Đơn giá (VNĐ)
+                SL Thực nhập{" "}
+                <span className="text-destructive font-bold">*</span>
               </TableHead>
               <TableHead className="w-36 text-right font-semibold">
+                Đơn giá (VNĐ){" "}
+                <span className="text-destructive font-bold">*</span>
+              </TableHead>
+              <TableHead className="w-40 text-right font-semibold">
                 Thành tiền
               </TableHead>
-              <TableHead className="w-10 text-center"></TableHead>
+              <TableHead className="min-w-[160px] font-semibold">
+                Ghi chú dòng
+              </TableHead>
+              <TableHead className="w-12 text-center"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -154,50 +169,43 @@ export function ReceiptItemsTable({
               const selectedProduct = products.find(
                 (p) => p.id === row.productId,
               );
-              const displayName = selectedProduct
-                ? `${selectedProduct.code ? `[${selectedProduct.code}] ` : ""}${selectedProduct.name}`
-                : row.productNameSnapshot || "Chọn vật tư...";
 
               return (
-                <TableRow key={idx} className="hover:bg-muted/20">
-                  <TableCell className="text-center text-xs font-medium">
+                <TableRow key={idx} className="hover:bg-muted/20 group">
+                  <TableCell className="text-center text-sm font-medium text-muted-foreground">
                     {idx + 1}
                   </TableCell>
 
-                  <TableCell>
+                  <TableCell className="py-2.5">
                     <Select
+                      items={productSelectItems}
                       value={row.productId}
                       onValueChange={(val: string | null) =>
                         handleProductChange(idx, val)
                       }
                     >
-                      <SelectTrigger className="h-8 text-xs font-medium w-full text-left truncate">
-                        <SelectValue placeholder="Chọn vật tư">
-                          {displayName}
-                        </SelectValue>
+                      <SelectTrigger className="h-9 text-sm font-medium w-full text-left truncate shadow-none">
+                        <SelectValue placeholder="Chọn vật tư..." />
                       </SelectTrigger>
-                      <SelectContent className="max-h-64 min-w-[320px]">
-                        {products.map((p) => (
+                      <SelectContent className="max-h-64 min-w-[360px]">
+                        {productSelectItems.map((item) => (
                           <SelectItem
-                            key={p.id}
-                            value={p.id}
-                            className="text-xs"
+                            key={item.value}
+                            value={item.value}
+                            className="text-sm"
                           >
-                            <span className="font-mono font-semibold text-primary mr-1.5">
-                              [{p.code}]
-                            </span>
-                            <span>{p.name}</span>
+                            {item.label}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </TableCell>
 
-                  <TableCell className="text-center text-xs text-muted-foreground font-medium">
+                  <TableCell className="text-center text-sm text-muted-foreground font-medium">
                     {row.unitSnapshot || selectedProduct?.unit || "—"}
                   </TableCell>
 
-                  <TableCell>
+                  <TableCell className="py-2.5">
                     <Input
                       type="number"
                       min="0"
@@ -206,11 +214,11 @@ export function ReceiptItemsTable({
                       onChange={(e) =>
                         handleChange(idx, "docQty", Number(e.target.value))
                       }
-                      className="h-8 text-xs text-right font-mono"
+                      className="h-9 text-sm text-right font-mono shadow-none"
                     />
                   </TableCell>
 
-                  <TableCell>
+                  <TableCell className="py-2.5">
                     <Input
                       type="number"
                       min="0"
@@ -219,11 +227,11 @@ export function ReceiptItemsTable({
                       onChange={(e) =>
                         handleChange(idx, "actualQty", Number(e.target.value))
                       }
-                      className="h-8 text-xs text-right font-mono font-semibold"
+                      className="h-9 text-sm text-right font-mono font-bold text-primary shadow-none border-primary/40 focus-visible:ring-primary/40"
                     />
                   </TableCell>
 
-                  <TableCell>
+                  <TableCell className="py-2.5">
                     <Input
                       type="number"
                       min="0"
@@ -232,14 +240,26 @@ export function ReceiptItemsTable({
                       onChange={(e) =>
                         handleChange(idx, "unitPrice", Number(e.target.value))
                       }
-                      className="h-8 text-xs text-right font-mono"
+                      className="h-9 text-sm text-right font-mono shadow-none"
                     />
                   </TableCell>
 
-                  <TableCell className="text-right font-mono font-bold text-xs text-primary whitespace-nowrap">
+                  <TableCell className="text-right font-mono font-bold text-sm text-foreground whitespace-nowrap bg-muted/10">
                     {formatCurrencyVND(
                       Number(row.actualQty || 0) * Number(row.unitPrice || 0),
                     )}
+                  </TableCell>
+
+                  <TableCell className="py-2.5">
+                    <Input
+                      type="text"
+                      placeholder="Ghi chú chi tiết..."
+                      value={row.note || ""}
+                      onChange={(e) =>
+                        handleChange(idx, "note", e.target.value)
+                      }
+                      className="h-9 text-sm shadow-none bg-transparent"
+                    />
                   </TableCell>
 
                   <TableCell className="text-center">
@@ -249,9 +269,9 @@ export function ReceiptItemsTable({
                       type="button"
                       onClick={() => removeItem(idx)}
                       disabled={items.length <= 1}
-                      className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                      className="h-8 w-8 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
                     >
-                      <Trash2 className="h-3.5 w-3.5" />
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </TableCell>
                 </TableRow>
@@ -260,18 +280,18 @@ export function ReceiptItemsTable({
           </TableBody>
         </Table>
 
-        <div className="p-3 bg-muted/20 border-t flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-xs">
-          <div className="italic text-muted-foreground">
+        <div className="p-4 bg-muted/30 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-t">
+          <div className="text-sm text-muted-foreground">
             Bằng chữ:{" "}
-            <span className="font-semibold text-foreground">
-              {totalAmountWords || "—"}
+            <span className="font-semibold text-foreground italic">
+              {totalAmountWords || "Không đồng"}
             </span>
           </div>
-          <div className="flex items-center gap-2 font-mono">
-            <span className="font-semibold text-muted-foreground uppercase text-[11px]">
-              Tổng tiền thanh toán:
+          <div className="flex items-center gap-3 font-mono">
+            <span className="font-semibold text-muted-foreground uppercase text-xs tracking-wider">
+              Tổng cộng:
             </span>
-            <span className="text-sm font-bold text-primary">
+            <span className="text-xl font-bold text-primary">
               {formatCurrencyVND(total)}
             </span>
           </div>

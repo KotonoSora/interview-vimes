@@ -1,5 +1,3 @@
-// app/constants/receipt.constants.ts
-
 export const RECEIPT_TYPES = {
   PURCHASE: "PURCHASE",
   INTERNAL_PRODUCTION: "INTERNAL_PRODUCTION",
