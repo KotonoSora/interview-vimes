@@ -49,7 +49,7 @@ sonar-project.properties
 coverage/
 
 # Other
-.npmrc
+!.npmrc
 .yarnrc.yml
 !package-lock.json
 yarn.lock
@@ -72,3 +72,5 @@ worker-configuration.d.ts
 !.dev.vars.example
 !.env.example
 workers/**/*.js
+
+setup_frontend.mjs
