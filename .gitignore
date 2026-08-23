@@ -73,4 +73,5 @@ worker-configuration.d.ts
 !.env.example
 workers/**/*.js
 
+setup_backend.mjs
 setup_frontend.mjs

@@ -112,7 +112,19 @@ describe("[Unit Test] PostgresGoodsReceiptRepository", () => {
   it("TC-REPO-PAGINATION: Phải áp dụng đầy đủ các query param filters (fromDate, toDate, warehouseId, status, search)", async () => {
     (pool.query as any)
       .mockResolvedValueOnce({ rows: [{ total: "5" }] }) // count query
-      .mockResolvedValueOnce({ rows: [{ id: "gr-1" }] }); // data query
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            id: "gr-1",
+            receiptNumber: "PNK-001",
+            receiptDate: "2026-08-20",
+            warehouseName: "Kho Tổng",
+            delivererName: "Nguyễn Văn A",
+            totalAmount: 10000,
+            status: "CONFIRMED",
+          },
+        ],
+      }); // data query
 
     const result = await repo.findPaginated({
       page: 1,
@@ -126,6 +138,7 @@ describe("[Unit Test] PostgresGoodsReceiptRepository", () => {
 
     expect(result.totalItems).toBe(5);
     expect(result.data).toHaveLength(1);
+    expect(result.data[0].warehouseName).toBe("Kho Tổng");
     expect(pool.query).toHaveBeenCalledTimes(2);
   });
 
@@ -159,7 +172,6 @@ describe("[Unit Test] PostgresGoodsReceiptRepository", () => {
 
     const result = await repo.saveWithTransaction(draftReceipt);
     expect(result.id).toBe("gr-draft-1");
-    // Không chạy INSERT INTO inventory_balances
     expect(mockClient.query).toHaveBeenCalledTimes(4);
   });
 

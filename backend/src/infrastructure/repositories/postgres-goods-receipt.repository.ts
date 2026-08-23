@@ -6,6 +6,7 @@ import {
   EntityNotFoundError,
 } from "#/domain/exceptions/domain.exception";
 import {
+  GoodsReceiptListItem,
   IGoodsReceiptRepository,
   PaginatedResult,
   PaginationQuery,
@@ -13,9 +14,6 @@ import {
 import { pool } from "#/infrastructure/database/postgres-pool";
 
 export class PostgresGoodsReceiptRepository implements IGoodsReceiptRepository {
-  /**
-   * Lưu phiếu nhập kho kèm Transaction và cập nhật tồn kho (Stock In)
-   */
   async saveWithTransaction(entity: GoodsReceipt): Promise<GoodsReceipt> {
     const client = await pool.connect();
     try {
@@ -141,9 +139,6 @@ export class PostgresGoodsReceiptRepository implements IGoodsReceiptRepository {
     return { id: saved.id!, receiptNumber: saved.receiptNumber };
   }
 
-  /**
-   * Cập nhật phiếu nhập kho có xử lý hoàn nguyên tồn kho cũ và cộng dồn tồn kho mới
-   */
   async updateWithTransaction(entity: GoodsReceipt): Promise<GoodsReceipt> {
     if (!entity.id) {
       throw new DomainValidationError(
@@ -294,9 +289,6 @@ export class PostgresGoodsReceiptRepository implements IGoodsReceiptRepository {
     await this.updateWithTransaction(targetEntity);
   }
 
-  /**
-   * Tìm kiếm theo số phiếu nhập kho
-   */
   async findByReceiptNumber(
     receiptNumber: string,
   ): Promise<GoodsReceipt | null> {
@@ -308,63 +300,41 @@ export class PostgresGoodsReceiptRepository implements IGoodsReceiptRepository {
     return this.findById(result.rows[0].id);
   }
 
-  /**
-   * Xóa chứng từ theo ID
-   */
   async deleteById(id: string): Promise<void> {
     await this.deleteOrCancel(id);
   }
 
-  // src/infrastructure/repositories/postgres-goods-receipt.repository.ts
   async findById(id: string): Promise<any | null> {
     const sql = `
       SELECT 
         gr.id, 
         gr.receipt_number AS "receiptNumber", 
-        gr.receipt_number,
         gr.organization_id AS "organizationId",
-        gr.organization_id,
         gr.warehouse_id AS "warehouseId",
-        gr.warehouse_id,
         to_char(gr.receipt_date, 'YYYY-MM-DD') AS "receiptDate", 
-        gr.receipt_date,
         to_char(gr.actual_received_date, 'YYYY-MM-DD') AS "actualReceivedDate", 
-        gr.actual_received_date,
         gr.receipt_type AS "receiptType",
-        gr.receipt_type,
         gr.description, 
         gr.deliverer_name AS "delivererName", 
-        gr.deliverer_name,
         gr.doc_reference AS "docReference", 
-        gr.doc_reference,
         to_char(gr.doc_date, 'YYYY-MM-DD') AS "docDate", 
-        gr.doc_date,
         gr.doc_origin AS "docOrigin",
-        gr.doc_origin,
         gr.debit_account AS "debitAccount", 
-        gr.debit_account,
         gr.credit_account AS "creditAccount", 
-        gr.credit_account,
         gr.total_amount::float AS "totalAmount", 
-        gr.total_amount,
         gr.total_amount_words AS "totalAmountWords",
-        gr.total_amount_words,
         gr.attached_doc_count AS "attachedDocCount",
-        gr.attached_doc_count,
         gr.creator_name AS "creatorName",
-        gr.creator_name,
         gr.storekeeper_name AS "storekeeperName",
-        gr.storekeeper_name,
         gr.chief_accountant_name AS "chiefAccountantName",
-        gr.chief_accountant_name,
         json_build_object(
           'creatorName', gr.creator_name,
           'storekeeperName', gr.storekeeper_name,
           'chiefAccountantName', gr.chief_accountant_name
         ) AS signatures,
         gr.status,
-        gr.created_at,
-        gr.updated_at,
+        gr.created_at AS "createdAt",
+        gr.updated_at AS "updatedAt",
         json_build_object('id', org.id, 'name', org.name, 'department', org.department) AS organization,
         json_build_object('id', wh.id, 'name', wh.name, 'location', wh.location) AS warehouse,
         COALESCE(
@@ -400,35 +370,93 @@ export class PostgresGoodsReceiptRepository implements IGoodsReceiptRepository {
 
   async findPaginated(
     pagination: PaginationQuery,
-  ): Promise<PaginatedResult<any>> {
-    const offset = (pagination.page - 1) * pagination.limit;
-    const countSql = `SELECT COUNT(*) AS total FROM goods_receipts WHERE status != 'CANCELLED';`;
+  ): Promise<PaginatedResult<GoodsReceiptListItem>> {
+    const conditions: string[] = ["1=1"];
+    const params: any[] = [];
+    let paramIndex = 1;
+
+    if (pagination.status) {
+      conditions.push(`gr.status = $${paramIndex++}`);
+      params.push(pagination.status);
+    }
+
+    if (pagination.warehouseId) {
+      conditions.push(`gr.warehouse_id = $${paramIndex++}`);
+      params.push(pagination.warehouseId);
+    }
+
+    if (pagination.fromDate) {
+      conditions.push(`gr.receipt_date::date >= $${paramIndex++}::date`);
+      params.push(pagination.fromDate);
+    }
+
+    if (pagination.toDate) {
+      conditions.push(`gr.receipt_date::date <= $${paramIndex++}::date`);
+      params.push(pagination.toDate);
+    }
+
+    if (pagination.search) {
+      conditions.push(
+        `(gr.receipt_number ILIKE $${paramIndex} OR gr.deliverer_name ILIKE $${paramIndex})`,
+      );
+      params.push(`%${pagination.search.trim()}%`);
+      paramIndex++;
+    }
+
+    const whereClause = conditions.join(" AND ");
+
+    const countSql = `
+      SELECT COUNT(*) AS total 
+      FROM goods_receipts gr
+      WHERE ${whereClause};
+    `;
+
+    const page = pagination.page && pagination.page > 0 ? pagination.page : 1;
+    const limit =
+      pagination.limit && pagination.limit > 0 ? pagination.limit : 20;
+    const offset = (page - 1) * limit;
+
+    const dataParams = [...params, limit, offset];
     const dataSql = `
       SELECT 
-        gr.id, gr.receipt_number, gr.receipt_date, gr.actual_received_date, gr.receipt_type,
-        gr.deliverer_name, gr.total_amount, gr.status, gr.created_at,
-        json_build_object('id', org.id, 'name', org.name, 'department', org.department) AS organization,
-        json_build_object('id', wh.id, 'name', wh.name, 'location', wh.location) AS warehouse
+        gr.id, 
+        gr.receipt_number AS "receiptNumber", 
+        to_char(gr.receipt_date, 'YYYY-MM-DD') AS "receiptDate", 
+        wh.name AS "warehouseName",
+        gr.deliverer_name AS "delivererName", 
+        gr.total_amount::float AS "totalAmount", 
+        gr.status
       FROM goods_receipts gr
-      INNER JOIN organizations org ON gr.organization_id = org.id
-      INNER JOIN warehouses wh ON gr.warehouse_id = wh.id
-      WHERE gr.status != 'CANCELLED'
-      ORDER BY gr.created_at DESC
-      LIMIT $1 OFFSET $2;
+      LEFT JOIN warehouses wh ON gr.warehouse_id = wh.id
+      WHERE ${whereClause}
+      ORDER BY gr.created_at DESC, gr.id DESC
+      LIMIT $${paramIndex++} OFFSET $${paramIndex++};
     `;
 
     const [countRes, dataRes] = await Promise.all([
-      pool.query(countSql),
-      pool.query(dataSql, [pagination.limit, offset]),
+      pool.query(countSql, params),
+      pool.query(dataSql, dataParams),
     ]);
 
-    const totalItems = parseInt(countRes.rows[0].total, 10);
+    const totalItems = parseInt(countRes.rows[0]?.total || "0", 10);
     return {
-      page: pagination.page,
-      limit: pagination.limit,
+      page,
+      limit,
       totalItems,
-      totalPages: Math.ceil(totalItems / pagination.limit),
-      data: dataRes.rows,
+      totalPages: Math.ceil(totalItems / limit) || 1,
+      data: dataRes.rows.map((row) => ({
+        id: row.id,
+        receiptNumber: row.receiptNumber || row.receipt_number,
+        receiptDate: row.receiptDate || row.receipt_date,
+        warehouseName:
+          row.warehouseName || row.warehouse_name || row.warehouse?.name || "",
+        delivererName: row.delivererName || row.deliverer_name || "",
+        totalAmount:
+          typeof row.totalAmount === "number"
+            ? row.totalAmount
+            : parseFloat(row.total_amount || 0),
+        status: row.status,
+      })),
     };
   }
 

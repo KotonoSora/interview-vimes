@@ -1,6 +1,48 @@
 // src/application/dtos/create-goods-receipt.dto.ts
 import { z } from "zod";
 
+const dateSchema = z.preprocess(
+  (arg) => {
+    if (arg instanceof Date) return arg;
+    if (typeof arg === "string") {
+      // Bắt buộc chuỗi phải có định dạng YYYY-MM-DD hoặc ISO string bắt đầu bằng YYYY-MM-DD
+      if (/^\d{2}-\d{2}-\d{4}$/.test(arg)) {
+        return new Date(NaN);
+      }
+      if (/^\d{4}-\d{2}-\d{2}/.test(arg)) {
+        return new Date(arg);
+      }
+      return new Date(NaN);
+    }
+    return arg;
+  },
+  z
+    .date({ message: "Ngày lập phiếu không hợp lệ" })
+    .refine((d) => !isNaN(d.getTime()), "Ngày lập phiếu không hợp lệ"),
+);
+
+const optionalDateSchema = z.preprocess(
+  (arg) => {
+    if (!arg) return undefined;
+    if (arg instanceof Date) return arg;
+    if (typeof arg === "string") {
+      if (/^\d{2}-\d{2}-\d{4}$/.test(arg)) {
+        return new Date(NaN);
+      }
+      if (/^\d{4}-\d{2}-\d{2}/.test(arg)) {
+        return new Date(arg);
+      }
+      return new Date(NaN);
+    }
+    return arg;
+  },
+  z
+    .date()
+    .refine((d) => !isNaN(d.getTime()), "Ngày không hợp lệ")
+    .optional()
+    .nullable(),
+);
+
 export const GoodsReceiptItemInputSchema = z
   .object({
     lineNo: z
@@ -30,11 +72,8 @@ export const CreateGoodsReceiptSchema = z
     receiptNumber: z.string().min(1, "Số phiếu nhập không được để trống"),
     organizationId: z.string().uuid("ID đơn vị không hợp lệ"),
     warehouseId: z.string().uuid("ID kho bãi không hợp lệ"),
-    receiptDate: z.coerce.date({ message: "Ngày lập phiếu không hợp lệ" }),
-    actualReceivedDate: z.coerce
-      .date({ message: "Ngày nhập kho không hợp lệ" })
-      .optional()
-      .nullable(),
+    receiptDate: dateSchema,
+    actualReceivedDate: optionalDateSchema,
     receiptType: z.enum([
       "PURCHASE",
       "INTERNAL_PRODUCTION",
@@ -44,10 +83,7 @@ export const CreateGoodsReceiptSchema = z
     ]),
     delivererName: z.string().min(1, "Họ tên người giao không được để trống"),
     docReference: z.string().optional().nullable(),
-    docDate: z.coerce
-      .date({ message: "Ngày chứng từ không hợp lệ" })
-      .optional()
-      .nullable(),
+    docDate: optionalDateSchema,
     docOrigin: z.string().optional().nullable(),
     debitAccount: z.string().optional().nullable(),
     creditAccount: z.string().optional().nullable(),
@@ -57,7 +93,7 @@ export const CreateGoodsReceiptSchema = z
     creatorName: z.string().optional().nullable(),
     storekeeperName: z.string().optional().nullable(),
     chiefAccountantName: z.string().optional().nullable(),
-    status: z.enum(["DRAFT", "CONFIRMED", "CANCELLED"]).default("CONFIRMED"),
+    status: z.enum(["DRAFT", "CONFIRMED"]).default("CONFIRMED"),
     items: z
       .array(GoodsReceiptItemInputSchema)
       .min(1, "Phiếu nhập phải có ít nhất 01 mặt hàng"),

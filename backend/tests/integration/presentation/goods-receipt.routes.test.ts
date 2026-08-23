@@ -21,30 +21,18 @@ describe("[Integration Test - TDD] Goods Receipt Routes (/api/v1/goods-receipts)
   });
 
   describe("GET /api/v1/goods-receipts", () => {
-    it("TC-INT-GR-01: should return paginated list of non-cancelled goods receipts with HTTP 200", async () => {
+    it("TC-INT-GR-01: should return paginated list of goods receipts with HTTP 200 and support filters", async () => {
       const mockCountResult = { rows: [{ total: "1" }] };
       const mockDataResult = {
         rows: [
           {
             id: sampleReceiptId,
-            receipt_number: "PNK-2026-001",
-            receipt_date: "2026-08-20T00:00:00.000Z",
-            actual_received_date: "2026-08-20T00:00:00.000Z",
-            receipt_type: "PURCHASE",
-            deliverer_name: "Nguyễn Văn Giao",
-            total_amount: "15000000",
+            receiptNumber: "PNK-2026-001",
+            receiptDate: "2026-08-20",
+            warehouseName: "Kho Tổng Trung Tâm",
+            delivererName: "Nguyễn Văn Giao",
+            totalAmount: 15000000,
             status: "CONFIRMED",
-            created_at: "2026-08-20T08:00:00.000Z",
-            organization: {
-              id: "org-1",
-              name: "Công ty Cổ phần VIMES",
-              department: "Kho Vận",
-            },
-            warehouse: {
-              id: "wh-1",
-              name: "Kho Tổng Trung Tâm",
-              location: "Hà Nội",
-            },
           },
         ],
       };
@@ -54,7 +42,9 @@ describe("[Integration Test - TDD] Goods Receipt Routes (/api/v1/goods-receipts)
         .mockResolvedValueOnce(mockDataResult);
 
       const response = await request(app)
-        .get("/api/v1/goods-receipts?page=1&limit=10")
+        .get(
+          "/api/v1/goods-receipts?page=1&limit=20&search=PNK-2026&status=CONFIRMED&fromDate=2026-08-01&toDate=2026-08-31",
+        )
         .set("X-Request-Id", mockTraceId);
 
       expect(response.status).toBe(200);
@@ -63,7 +53,7 @@ describe("[Integration Test - TDD] Goods Receipt Routes (/api/v1/goods-receipts)
         requestId: mockTraceId,
         pagination: {
           page: 1,
-          limit: 10,
+          limit: 20,
           totalItems: 1,
           totalPages: 1,
         },
@@ -175,7 +165,6 @@ describe("[Integration Test - TDD] Goods Receipt Routes (/api/v1/goods-receipts)
         release: vi.fn(),
       };
 
-      // Mock findByReceiptNumber trả về null (chưa tồn tại số phiếu)
       (pool.query as any).mockResolvedValueOnce({ rows: [] });
       (pool.connect as any).mockResolvedValueOnce(mockClient);
 
@@ -275,18 +264,16 @@ describe("[Integration Test - TDD] Goods Receipt Routes (/api/v1/goods-receipts)
         ],
       };
 
-      // 1. Mock findById trong DeleteGoodsReceiptUseCase
       (pool.query as any).mockResolvedValueOnce({ rows: [mockReceiptDetail] });
       (pool.connect as any).mockResolvedValueOnce(mockClient);
 
-      // 2. Mock chuỗi 8 câu lệnh trong updateWithTransaction
       mockClient.query
         .mockResolvedValueOnce({}) // 1. BEGIN
         .mockResolvedValueOnce({
           rows: [
             { id: sampleReceiptId, status: "CONFIRMED", warehouse_id: "wh-1" },
           ],
-        }) // 2. SELECT for update (khóa bản ghi)
+        }) // 2. SELECT for update
         .mockResolvedValueOnce({
           rows: [
             {
@@ -294,9 +281,9 @@ describe("[Integration Test - TDD] Goods Receipt Routes (/api/v1/goods-receipts)
               actual_qty: 100,
             },
           ],
-        }) // 3. SELECT old items để hoàn kho
-        .mockResolvedValueOnce({}) // 4. UPDATE inventory_balances (trừ tồn kho)
-        .mockResolvedValueOnce({}) // 5. UPDATE goods_receipts (cập nhật header CANCELLED)
+        }) // 3. SELECT old items
+        .mockResolvedValueOnce({}) // 4. UPDATE inventory_balances
+        .mockResolvedValueOnce({}) // 5. UPDATE goods_receipts
         .mockResolvedValueOnce({}) // 6. DELETE FROM goods_receipt_items
         .mockResolvedValueOnce({ rows: [{ id: "item-1" }] }) // 7. INSERT INTO goods_receipt_items
         .mockResolvedValueOnce({}); // 8. COMMIT
