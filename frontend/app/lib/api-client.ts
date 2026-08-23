@@ -1,27 +1,49 @@
 import { toast } from "~/components/ui/toast";
 
+const isServer = typeof window === "undefined";
+
+/**
+ * Resolves the appropriate Backend Base URL depending on execution runtime.
+ * - Server (SSR / Node.js): Uses internal network URL (e.g., Docker DNS 'http://backend-api:8082' or local host).
+ * - Client (Browser): Uses a relative URL or Nginx reverse proxy URL ('http://localhost:8080').
+ */
 const getBackendOrigin = (): string => {
-  let rawUrl = "";
-  if (typeof process !== "undefined" && process.env?.API_BASE_URL) {
-    rawUrl = process.env.API_BASE_URL;
-  } else if (
+  // 1. Server-Side Execution (SSR loader running inside Node.js)
+  if (isServer) {
+    const serverUrl =
+      (typeof process !== "undefined" && process.env?.API_BASE_URL) ||
+      "http://backend-api:8082";
+
+    return serverUrl
+      .replace(/\/api\/v1\/?$/, "") // Remove duplicate '/api/v1' suffix if present
+      .replace(/\/+$/, ""); // Trim trailing slashes
+  }
+
+  // 2. Client-Side Execution (Browser runtime)
+  // Default to empty string to let requests leverage relative pathing via Nginx proxy (/api/v1/...)
+  let clientUrl = "";
+  if (
     typeof import.meta !== "undefined" &&
     import.meta.env?.VITE_API_BASE_URL
   ) {
-    rawUrl = import.meta.env.VITE_API_BASE_URL;
+    clientUrl = import.meta.env.VITE_API_BASE_URL;
   }
-  if (!rawUrl) rawUrl = "http://127.0.0.1:3000";
-  return rawUrl
-    .replace("//localhost", "//127.0.0.1")
-    .replace(/\/api\/v1\/?$/, "")
-    .replace(/\/+$/, "");
+
+  return clientUrl
+    .replace(/\/api\/v1\/?$/, "") // Remove duplicate '/api/v1' suffix if present
+    .replace(/\/+$/, ""); // Trim trailing slashes
 };
 
 const ROOT_ENDPOINTS = ["/healthz", "/ready", "/metrics"];
 
+/**
+ * Constructs a standardized API endpoint URL.
+ */
 export const buildApiUrl = (endpoint: string): string => {
   const origin = getBackendOrigin();
   const cleanEndpoint = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
+
+  // Preserve root-level health/metrics endpoints
   if (
     ROOT_ENDPOINTS.some(
       (r) => cleanEndpoint === r || cleanEndpoint.startsWith(`${r}?`),
@@ -29,7 +51,12 @@ export const buildApiUrl = (endpoint: string): string => {
   ) {
     return `${origin}${cleanEndpoint}`;
   }
-  if (cleanEndpoint.startsWith("/api/v1/")) return `${origin}${cleanEndpoint}`;
+
+  // Ensure standard '/api/v1' prefix for business logic endpoints
+  if (cleanEndpoint.startsWith("/api/v1/")) {
+    return `${origin}${cleanEndpoint}`;
+  }
+
   return `${origin}/api/v1${cleanEndpoint}`;
 };
 
