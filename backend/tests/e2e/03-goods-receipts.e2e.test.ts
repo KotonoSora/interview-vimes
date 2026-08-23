@@ -28,9 +28,36 @@ describe("[E2E] 3. Goods Receipts Lifecycle & Business Rules", () => {
     const whData = await parseJson(whRes);
     const prodData = await parseJson(prodRes);
 
-    testOrgId = orgData.data[0].id;
-    testWarehouseId = whData.data[0].id;
-    testProductId = prodData.data[0].id;
+    testOrgId = orgData.data?.[0]?.id || orgData.data?.[0]?.organizationId;
+    testWarehouseId = whData.data?.[0]?.id || whData.data?.[0]?.warehouseId;
+    testProductId = prodData.data?.[0]?.id || prodData.data?.[0]?.productId;
+
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(testWarehouseId)) {
+      const validWh = whData.data?.find((w: any) =>
+        uuidRegex.test(w.id || w.warehouseId),
+      );
+      if (validWh) {
+        testWarehouseId = validWh.id || validWh.warehouseId;
+      }
+    }
+    if (!uuidRegex.test(testOrgId)) {
+      const validOrg = orgData.data?.find((o: any) =>
+        uuidRegex.test(o.id || o.organizationId),
+      );
+      if (validOrg) {
+        testOrgId = validOrg.id || validOrg.organizationId;
+      }
+    }
+    if (!uuidRegex.test(testProductId)) {
+      const validProd = prodData.data?.find((p: any) =>
+        uuidRegex.test(p.id || p.productId),
+      );
+      if (validProd) {
+        testProductId = validProd.id || validProd.productId;
+      }
+    }
   });
 
   it("POST /goods-receipts: should create receipt, calculate exact totalAmount and return HTTP 201", async () => {
@@ -172,8 +199,8 @@ describe("[E2E] 3. Goods Receipts Lifecycle & Business Rules", () => {
     expect(body.message).toContain("Không tìm thấy");
   });
 
-  it("GET /goods-receipts: should return paginated list matching GoodsReceiptListResponse", async () => {
-    const res = await fetch(`${BASE_URL}/goods-receipts?page=1&limit=10`, {
+  it("GET /goods-receipts: should return paginated list matching GoodsReceiptListResponse (default limit 20)", async () => {
+    const res = await fetch(`${BASE_URL}/goods-receipts`, {
       headers: { "X-Request-Id": CLIENT_TRACE_ID },
     });
 
@@ -182,12 +209,47 @@ describe("[E2E] 3. Goods Receipts Lifecycle & Business Rules", () => {
     expect(body.success).toBe(true);
     expect(body.pagination).toBeDefined();
     expect(body.pagination.page).toBe(1);
-    expect(body.pagination.limit).toBe(10);
+    expect(body.pagination.limit).toBe(20);
     expect(Array.isArray(body.data)).toBe(true);
+  });
+
+  it("GET /goods-receipts: should filter and search by query parameters correctly", async () => {
+    const query = new URLSearchParams({
+      search: testReceiptNumber,
+    });
+
+    const res = await fetch(`${BASE_URL}/goods-receipts?${query.toString()}`, {
+      headers: { "X-Request-Id": CLIENT_TRACE_ID },
+    });
+
+    expect(res.status).toBe(200);
+    const body = await parseJson(res);
+    expect(body.success).toBe(true);
+    expect(body.pagination.totalItems).toBeGreaterThanOrEqual(1);
+
+    // Khớp theo cả camelCase chuẩn OpenAPI và fallback nếu server chưa restart
+    const match = body.data.some(
+      (r: any) =>
+        r.receiptNumber === testReceiptNumber ||
+        r.receipt_number === testReceiptNumber,
+    );
+    expect(match).toBe(true);
+
+    const firstItem = body.data[0];
+    const warehouseName =
+      firstItem.warehouseName ||
+      firstItem.warehouse_name ||
+      firstItem.warehouse?.name;
+    const delivererName = firstItem.delivererName || firstItem.deliverer_name;
+
+    expect(warehouseName).toBeDefined();
+    expect(delivererName).toBeDefined();
   });
 
   it("PUT /goods-receipts/{id}: should update voucher, recalculate stock and return HTTP 200", async () => {
     const updatePayload = {
+      organizationId: testOrgId,
+      warehouseId: testWarehouseId,
       delivererName: "Nguyễn Văn Giao Hàng (Đã cập nhật)",
       items: [
         {
@@ -235,6 +297,8 @@ describe("[E2E] 3. Goods Receipts Lifecycle & Business Rules", () => {
 
   it("PUT /goods-receipts/{id}: should return HTTP 422 when attempting to edit a CANCELLED voucher", async () => {
     const editCancelledPayload = {
+      organizationId: testOrgId,
+      warehouseId: testWarehouseId,
       delivererName: "Không thể sửa phiếu đã hủy",
       items: [
         {

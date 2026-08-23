@@ -2,21 +2,23 @@
 import { NextFunction, Request, Response } from "express";
 import { ZodError } from "zod";
 
+import { DomainException } from "#/domain/exceptions/domain.exception";
+
 export function errorMiddleware(
   err: any,
   req: Request,
   res: Response,
   _next: NextFunction,
 ): void {
+  const traceId = req.id || (req.headers["x-request-id"] as string) || "";
   const message =
     err?.message || "Đã xảy ra lỗi trong quá trình xử lý chứng từ.";
-  const traceId = req.id || (req.headers["x-request-id"] as string) || "";
 
   if (traceId) {
     res.setHeader("X-Request-Id", traceId);
   }
 
-  // 1. Zod Validation (HTTP 400)
+  // 1. Zod Validation Errors (HTTP 400)
   if (
     err instanceof ZodError ||
     err?.name === "ZodError" ||
@@ -37,30 +39,10 @@ export function errorMiddleware(
     return;
   }
 
-  // 2. Conflict / Duplicate (HTTP 409)
-  if (message.includes("đã tồn tại")) {
-    res.status(409).json({
-      success: false,
-      message,
-      requestId: traceId,
-    });
-    return;
-  }
-
-  // 3. Not Found (HTTP 404)
-  if (message.includes("Không tìm thấy") || err?.status === 404) {
-    res.status(404).json({
-      success: false,
-      message,
-      requestId: traceId,
-    });
-    return;
-  }
-
-  // 4. Unprocessable Content (HTTP 422)
+  // 2. Unprocessable Entity / Business Rule Violation (HTTP 422)
   if (
-    message.includes("CANCELLED") ||
-    message.includes("đã bị hủy") ||
+    err?.name === "DomainValidationError" ||
+    err?.name === "DomainUnprocessableError" ||
     err?.status === 422
   ) {
     res.status(422).json({
@@ -71,11 +53,52 @@ export function errorMiddleware(
     return;
   }
 
-  // 5. Internal Server Error (HTTP 500)
-  const statusCode = typeof err?.status === "number" ? err.status : 500;
-  res.status(statusCode).json({
+  // 3. Duplicate / Conflict (HTTP 409)
+  if (
+    err?.name === "DomainConflictError" ||
+    err?.name === "ConcurrencyConflictError" ||
+    message.includes("đã tồn tại") ||
+    err?.status === 409
+  ) {
+    res.status(409).json({
+      success: false,
+      message,
+      requestId: traceId,
+    });
+    return;
+  }
+
+  // 4. Not Found (HTTP 404)
+  if (
+    err?.name === "EntityNotFoundError" ||
+    message.includes("Không tìm thấy") ||
+    err?.status === 404
+  ) {
+    res.status(404).json({
+      success: false,
+      message,
+      requestId: traceId,
+    });
+    return;
+  }
+
+  // 5. Generic Domain Exceptions
+  if (err instanceof DomainException && typeof err.status === "number") {
+    res.status(err.status).json({
+      success: false,
+      message: err.message,
+      requestId: traceId,
+    });
+    return;
+  }
+
+  // 6. Internal Server Error (HTTP 500)
+  const isProd = process.env.NODE_ENV === "production";
+  res.status(500).json({
     success: false,
-    message: "Đã xảy ra lỗi trong quá trình xử lý chứng từ.",
+    message: isProd
+      ? "Đã xảy ra lỗi trong quá trình xử lý chứng từ."
+      : message || "Đã xảy ra lỗi trong quá trình xử lý chứng từ.",
     requestId: traceId,
   });
 }

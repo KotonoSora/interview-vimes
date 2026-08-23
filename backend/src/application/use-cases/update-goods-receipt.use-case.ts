@@ -2,7 +2,10 @@
 import { UpdateGoodsReceiptDTO } from "#/application/dtos/update-goods-receipt.dto";
 import { GoodsReceipt } from "#/domain/entities/goods-receipt.entity";
 import { ReceiptItem } from "#/domain/entities/receipt-item.entity";
-import { DomainValidationError } from "#/domain/exceptions/domain.exception";
+import {
+  DomainUnprocessableError,
+  EntityNotFoundError,
+} from "#/domain/exceptions/domain.exception";
 import { IGoodsReceiptRepository } from "#/domain/repositories/goods-receipt.repository.interface";
 import { Money } from "#/domain/value-objects/money.vo";
 import { Quantity } from "#/domain/value-objects/quantity.vo";
@@ -20,18 +23,15 @@ export class UpdateGoodsReceiptUseCase {
   ): Promise<{ receiptId: string; totalAmount: number }> {
     const existing = await this.receiptRepo.findById(id);
     if (!existing) {
-      throw new DomainValidationError(
-        "Không tìm thấy phiếu nhập kho với ID đã cung cấp.",
-      );
+      throw new EntityNotFoundError("phiếu nhập kho", id);
     }
 
     if (existing.status === "CANCELLED") {
-      throw new DomainValidationError(
+      throw new DomainUnprocessableError(
         "Không thể chỉnh sửa phiếu nhập đã ở trạng thái CANCELLED.",
       );
     }
 
-    // Trích xuất các trường bất biến (hỗ trợ cả Entity method lẫn plain object DB)
     const receiptNumber =
       existing.receiptNumber ||
       existing.receipt_number ||
@@ -40,6 +40,7 @@ export class UpdateGoodsReceiptUseCase {
         : "");
 
     const organizationId =
+      (dto as any).organizationId ||
       existing.organizationId ||
       existing.organization_id ||
       (existing.organization && existing.organization.id) ||
@@ -48,6 +49,7 @@ export class UpdateGoodsReceiptUseCase {
         : "");
 
     const warehouseId =
+      (dto as any).warehouseId ||
       existing.warehouseId ||
       existing.warehouse_id ||
       (existing.warehouse && existing.warehouse.id) ||
@@ -118,7 +120,6 @@ export class UpdateGoodsReceiptUseCase {
         : existing.chiefAccountantName || existing.chief_accountant_name;
     const status = existing.status;
 
-    // Xử lý danh sách items
     let domainItems: ReceiptItem[] = [];
     if (dto.items && dto.items.length > 0) {
       domainItems = dto.items.map(

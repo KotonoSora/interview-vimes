@@ -2,7 +2,7 @@
 import { CreateGoodsReceiptDTO } from "#/application/dtos/create-goods-receipt.dto";
 import { GoodsReceipt } from "#/domain/entities/goods-receipt.entity";
 import { ReceiptItem } from "#/domain/entities/receipt-item.entity";
-import { DomainValidationError } from "#/domain/exceptions/domain.exception";
+import { DomainConflictError } from "#/domain/exceptions/domain.exception";
 import { IGoodsReceiptRepository } from "#/domain/repositories/goods-receipt.repository.interface";
 import { Money } from "#/domain/value-objects/money.vo";
 import { Quantity } from "#/domain/value-objects/quantity.vo";
@@ -28,7 +28,7 @@ export class CreateGoodsReceiptUseCase {
       dto.receiptNumber,
     );
     if (existing) {
-      throw new DomainValidationError(
+      throw new DomainConflictError(
         `Số phiếu ${dto.receiptNumber} đã tồn tại trên hệ thống.`,
       );
     }
@@ -48,18 +48,33 @@ export class CreateGoodsReceiptUseCase {
       });
     });
 
+    const parsedReceiptDate =
+      dto.receiptDate instanceof Date
+        ? dto.receiptDate
+        : new Date(dto.receiptDate);
+
+    const parsedActualReceivedDate = dto.actualReceivedDate
+      ? dto.actualReceivedDate instanceof Date
+        ? dto.actualReceivedDate
+        : new Date(dto.actualReceivedDate)
+      : undefined;
+
+    const parsedDocDate = dto.docDate
+      ? dto.docDate instanceof Date
+        ? dto.docDate
+        : new Date(dto.docDate)
+      : undefined;
+
     const aggregate = GoodsReceipt.create({
       receiptNumber: dto.receiptNumber,
       organizationId: dto.organizationId,
       warehouseId: dto.warehouseId,
-      receiptDate: new Date(dto.receiptDate),
-      actualReceivedDate: dto.actualReceivedDate
-        ? new Date(dto.actualReceivedDate)
-        : undefined,
+      receiptDate: parsedReceiptDate,
+      actualReceivedDate: parsedActualReceivedDate,
       receiptType: dto.receiptType,
       delivererName: dto.delivererName,
       docReference: dto.docReference ?? undefined,
-      docDate: dto.docDate ? new Date(dto.docDate) : undefined,
+      docDate: parsedDocDate,
       docOrigin: dto.docOrigin ?? undefined,
       debitAccount: dto.debitAccount ?? undefined,
       creditAccount: dto.creditAccount ?? undefined,
@@ -78,7 +93,9 @@ export class CreateGoodsReceiptUseCase {
     const receiptId =
       typeof saveResult === "string"
         ? saveResult
-        : (saveResult as any)?.id || "generated-uuid-receipt-id";
+        : (saveResult as any)?.id ||
+          (saveResult as any)?.receiptId ||
+          "generated-uuid-receipt-id";
 
     if (this.auditService && typeof this.auditService.logEvent === "function") {
       await this.auditService.logEvent({

@@ -57,4 +57,34 @@ describe("[E2E] 2. Master Data Endpoints", () => {
     expect(prod.unit).toBeDefined();
     expect(typeof prod.defaultPrice).toBe("number");
   });
+
+  it("GET /master-data/products?search=...: should filter products by query keyword", async () => {
+    const initialRes = await fetch(`${BASE_URL}/master-data/products`, {
+      headers: { "X-Request-Id": CLIENT_TRACE_ID },
+    });
+    const initialBody = await parseJson(initialRes);
+    const targetProduct = initialBody.data[0];
+
+    const searchKeyword =
+      targetProduct.code || targetProduct.name.substring(0, 3);
+    const res = await fetch(
+      `${BASE_URL}/master-data/products?search=${encodeURIComponent(searchKeyword)}`,
+      {
+        headers: { "X-Request-Id": CLIENT_TRACE_ID },
+      },
+    );
+
+    expect(res.status).toBe(200);
+    const body = await parseJson(res);
+    expect(body.success).toBe(true);
+    expect(Array.isArray(body.data)).toBe(true);
+    expect(body.data.length).toBeGreaterThan(0);
+    expect(
+      body.data.some(
+        (p: any) =>
+          p.code.toLowerCase().includes(searchKeyword.toLowerCase()) ||
+          p.name.toLowerCase().includes(searchKeyword.toLowerCase()),
+      ),
+    ).toBe(true);
+  });
 });
