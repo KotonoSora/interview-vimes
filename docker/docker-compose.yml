@@ -2,38 +2,56 @@
 name: vimes-inventory-prod
 
 services:
-  # Lớp Reverse Proxy & Anti-DDoS (Nginx Mainline 1.31.4 Alpine)
+  # ============================================================================
+  # 1. REVERSE PROXY & ANTI-DDOS SERVICE (NGINX)
+  # - Acts as the unified public entrypoint for all incoming traffic.
+  # - Routes /api, /healthz, /metrics, /ready to the Backend service (port 8082).
+  # - Routes all other user-facing web requests to the Frontend SSR (port 8081).
+  # ============================================================================
   reverse-proxy:
     image: nginx:1.31.4-alpine
     container_name: vimes_reverse_proxy
     restart: always
     ports:
+      # Expose port 8080 to the host machine for external browser and E2E access
       - "8080:80"
     volumes:
+      # Mount Nginx configuration from the host in read-only mode
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
+      # Start proxy only after both Backend and Frontend pass their healthchecks
       backend-api:
         condition: service_healthy
       frontend-app:
         condition: service_healthy
 
-  # PostgreSQL v18.6 Alpine
+  # ============================================================================
+  # 2. POSTGRESQL DATABASE SERVICE
+  # - Initializes with a superuser account to execute base setup scripts.
+  # - Automatically executes SQL init scripts in alphabetical order on first boot.
+  # ============================================================================
   postgres-db:
     image: postgres:18.6-alpine
     container_name: vimes_postgres_db
     restart: always
     environment:
       POSTGRES_DB: vimes_inventory
+      # Superuser credentials used solely for internal database bootstrapping
       POSTGRES_USER: postgres_user
       POSTGRES_PASSWORD: postgres_password
+      PGDATA: /var/lib/postgresql/data/pgdata
     ports:
+      # Expose default PostgreSQL port for local debugging and DB management tools
       - "5432:5432"
     volumes:
-      - pgdata:/var/lib/postgresql
+      # Persistent named volume for database files
+      - pgdata:/var/lib/postgresql/data
+      # SQL initialization scripts (Schema, Seed data, and Least-Privilege Roles)
       - ../sql/01_schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
       - ../sql/02_seed.sql:/docker-entrypoint-initdb.d/02_seed.sql
       - ../sql/03_security_roles.sql:/docker-entrypoint-initdb.d/03_security_roles.sql
     healthcheck:
+      # Verify that PostgreSQL is ready to accept client connections
       test:
         [
           "CMD-SHELL",
@@ -44,7 +62,11 @@ services:
       retries: 10
       start_period: 20s
 
-  # Backend REST API Service
+  # ============================================================================
+  # 3. BACKEND REST API SERVICE
+  # - Executes business logic and communicates directly with PostgreSQL.
+  # - Uses the least-privilege 'app_user' account instead of the superuser.
+  # ============================================================================
   backend-api:
     build:
       context: ..
@@ -52,36 +74,53 @@ services:
     container_name: vimes_backend_api
     restart: always
     depends_on:
+      # Wait for the database container to become healthy before starting the app
       postgres-db:
         condition: service_healthy
     environment:
       PORT: 8082
       NODE_ENV: production
-      DATABASE_URL: postgresql://postgres_user:postgres_password@postgres-db:5432/vimes_inventory
+      # Application DB connection string adhering to the Principle of Least Privilege
+      DATABASE_URL: postgresql://app_user:app_secure_password_2026@postgres-db:5432/vimes_inventory
     healthcheck:
+      # Probe backend readiness/liveness endpoint
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8082/healthz || exit 1"]
       interval: 10s
       timeout: 3s
       retries: 5
       start_period: 15s
 
-  # Frontend Web Service
+  # ============================================================================
+  # 4. FRONTEND WEB SERVICE (REACT ROUTER SSR)
+  # - Performs Server-Side Rendering (SSR) and delivers client JavaScript bundles.
+  # - Receives internal Docker network URL so server loaders can query the API.
+  # ============================================================================
   frontend-app:
     build:
       context: ..
       dockerfile: docker/Dockerfile.frontend
     container_name: vimes_frontend_app
     restart: always
+    depends_on:
+      # Ensure Backend API is ready before Frontend SSR initiates data fetching
+      backend-api:
+        condition: service_healthy
     environment:
       PORT: 8081
       NODE_ENV: production
+      # Internal Docker DNS endpoint for SSR loaders to reach Backend API directly
+      API_BASE_URL: http://backend-api:8082
     healthcheck:
+      # Probe frontend SSR home page availability
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8081/ || exit 1"]
       interval: 10s
       timeout: 3s
       retries: 5
       start_period: 15s
 
+# ==============================================================================
+# PERSISTENT STORAGE VOLUMES
+# ==============================================================================
 volumes:
   pgdata:
     name: vimes_inventory_pgdata
