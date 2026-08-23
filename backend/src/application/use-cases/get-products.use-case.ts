@@ -1,11 +1,14 @@
 // src/application/use-cases/get-products.use-case.ts
-import { IMasterDataRepository } from "#/domain/repositories/master-data.repository.interface";
+import {
+  IMasterDataRepository,
+  ProductSummary,
+} from "#/domain/repositories/master-data.repository.interface";
 
 export class GetProductsUseCase {
   constructor(private readonly masterDataRepo: IMasterDataRepository) {}
 
-  async execute(searchQuery?: string) {
-    const products = await this.masterDataRepo.searchProducts(searchQuery);
-    return products.map((p) => p.toJSON());
+  async execute(searchQuery?: string): Promise<ProductSummary[]> {
+    const sanitizedSearch = searchQuery?.trim() || undefined;
+    return this.masterDataRepo.searchProducts(sanitizedSearch);
   }
 }

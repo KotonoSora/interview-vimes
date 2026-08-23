@@ -26,7 +26,18 @@ describe("[Presentation] GoodsReceiptController Error Handling & Branch Coverage
       createMockUseCase(false) as any, // detail
     );
 
-    const req: any = { query: { page: "1", limit: "10" }, id: "req-123" };
+    const req: any = {
+      query: {
+        page: "1",
+        limit: "10",
+        search: "PNK",
+        fromDate: "2026-08-01",
+        toDate: "2026-08-31",
+        warehouseId: "wh-1",
+        status: "CONFIRMED",
+      },
+      id: "req-123",
+    };
     const res = mockResponse();
     const next = vi.fn();
 

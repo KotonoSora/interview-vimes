@@ -1,4 +1,7 @@
-import { Plus, Trash2 } from "lucide-react";
+import { Package, Plus, Trash2 } from "lucide-react";
+import * as React from "react";
+
+import type { MasterProduct } from "~/services/master-data.service";
 
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
@@ -18,34 +21,25 @@ import {
   TableHeader,
   TableRow,
 } from "~/components/ui/table";
+import { formatCurrencyVND } from "~/lib/formatters";
 
 export interface ReceiptItemRow {
   productId: string;
-  productCode?: string;
   productNameSnapshot: string;
   unitSnapshot: string;
   docQty: number;
   actualQty: number;
   unitPrice: number;
-  debitAccount?: string;
-  creditAccount?: string;
-  note?: string;
+  debitAccount?: string | null;
+  creditAccount?: string | null;
+  note?: string | null;
 }
 
-interface ProductCatalogOption {
-  id: string;
-  code: string;
-  name: string;
-  unit: string;
-  defaultPrice: number;
-}
-
-interface ReceiptItemsTableProps {
+interface Props {
   items: ReceiptItemRow[];
   setItems: React.Dispatch<React.SetStateAction<ReceiptItemRow[]>>;
-  products: ProductCatalogOption[];
-  totalAmountWords?: string;
-  isReadOnly?: boolean;
+  products: MasterProduct[];
+  totalAmountWords?: string | null;
 }
 
 export function ReceiptItemsTable({
@@ -53,51 +47,55 @@ export function ReceiptItemsTable({
   setItems,
   products,
   totalAmountWords,
-  isReadOnly = false,
-}: ReceiptItemsTableProps) {
-  const handleProductChange = (index: number, productId: string) => {
-    const p = products.find((prod) => prod.id === productId);
-    if (!p) return;
-    const newItems = [...items];
-    newItems[index] = {
-      ...newItems[index],
-      productId: p.id,
-      productCode: p.code,
-      productNameSnapshot: p.name,
-      unitSnapshot: p.unit,
-      unitPrice: p.defaultPrice || 0,
-    };
-    setItems(newItems);
+}: Props) {
+  // Mảng lookup items chuẩn cho Base UI Select
+  const productSelectItems = React.useMemo(() => {
+    return products.map((p) => ({
+      value: p.id,
+      label: p.code ? `[${p.code}] ${p.name}` : p.name,
+    }));
+  }, [products]);
+
+  const handleProductChange = (index: number, productId: string | null) => {
+    if (!productId) return;
+    const selected = products.find((p) => p.id === productId);
+    if (!selected) return;
+    setItems((prev) => {
+      const next = [...prev];
+      next[index] = {
+        ...next[index],
+        productId: selected.id,
+        productNameSnapshot: selected.name,
+        unitSnapshot: selected.unit,
+        unitPrice: selected.defaultPrice || 0,
+      };
+      return next;
+    });
   };
 
-  const handleFieldChange = (
+  const handleChange = (
     index: number,
     field: keyof ReceiptItemRow,
-    value: any,
+    value: unknown,
   ) => {
-    const newItems = [...items];
-    newItems[index] = { ...newItems[index], [field]: value };
-    setItems(newItems);
+    setItems((prev) => {
+      const next = [...prev];
+      next[index] = { ...next[index], [field]: value };
+      return next;
+    });
   };
 
-  const addItemRow = () => {
-    const firstP = products[0] || {
-      id: "",
-      code: "",
-      name: "",
-      unit: "",
-      defaultPrice: 0,
-    };
-    setItems([
-      ...items,
+  const addItem = () => {
+    const p = products[0];
+    setItems((prev) => [
+      ...prev,
       {
-        productId: firstP.id,
-        productCode: firstP.code,
-        productNameSnapshot: firstP.name,
-        unitSnapshot: firstP.unit,
+        productId: p?.id || "",
+        productNameSnapshot: p?.name || "Vật tư",
+        unitSnapshot: p?.unit || "Cái",
         docQty: 1,
         actualQty: 1,
-        unitPrice: firstP.defaultPrice || 0,
+        unitPrice: p?.defaultPrice || 0,
         debitAccount: "152",
         creditAccount: "331",
         note: "",
@@ -105,182 +103,198 @@ export function ReceiptItemsTable({
     ]);
   };
 
-  const removeItemRow = (index: number) => {
+  const removeItem = (index: number) => {
     if (items.length <= 1) return;
-    setItems(items.filter((_, i) => i !== index));
+    setItems((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const totalAmount = items.reduce(
-    (acc, it) => acc + Number(it.actualQty || 0) * Number(it.unitPrice || 0),
+  const total = items.reduce(
+    (sum, it) => sum + Number(it.actualQty || 0) * Number(it.unitPrice || 0),
     0,
   );
 
   return (
-    <Card>
-      <CardHeader className="pb-3 border-b flex flex-row items-center justify-between">
-        <div>
-          <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            3. Danh Sách Chi Tiết Vật Tư, Hàng Hóa Thực Nhập (Mục [6], [7], [8])
-          </CardTitle>
-          <p className="text-[11px] text-muted-foreground mt-0.5">
-            Thành tiền Cột 4 = Số lượng thực nhập (Cột 2) × Đơn giá (Cột 3)
-          </p>
-        </div>
-        {!isReadOnly && (
-          <Button size="sm" variant="secondary" onClick={addItemRow}>
-            <Plus className="h-4 w-4 mr-1" /> Thêm dòng
-          </Button>
-        )}
+    <Card className="overflow-hidden shadow-sm border">
+      <CardHeader className="py-3 px-5 border-b flex flex-row items-center justify-between bg-muted/20">
+        <CardTitle className="text-sm font-bold flex items-center gap-2">
+          <Package className="h-5 w-5 text-primary" /> Chi Tiết Vật Tư / Hàng
+          Hóa Thực Nhập ({items.length})
+        </CardTitle>
+        <Button
+          size="sm"
+          onClick={addItem}
+          type="button"
+          className="h-8 text-xs font-semibold"
+        >
+          <Plus className="h-4 w-4 mr-1.5" /> Thêm Dòng Vật Tư
+        </Button>
       </CardHeader>
       <CardContent className="p-0 overflow-x-auto">
         <Table>
           <TableHeader>
-            <TableRow className="bg-muted/40">
-              <TableHead className="w-[45px] text-center">STT</TableHead>
-              <TableHead className="w-[280px]">
-                Tên, quy cách vật tư (Cột B)
+            <TableRow className="bg-muted/40 text-xs sm:text-sm">
+              <TableHead className="w-12 text-center font-semibold">
+                STT
               </TableHead>
-              <TableHead className="w-[90px]">Mã (Cột C)</TableHead>
-              <TableHead className="w-[70px]">ĐVT (D)</TableHead>
-              <TableHead className="w-[100px] text-right">
-                SL C.Từ (1)
+              <TableHead className="min-w-[300px] font-semibold">
+                Tên, quy cách vật tư / hàng hóa{" "}
+                <span className="text-destructive font-bold">*</span>
               </TableHead>
-              <TableHead className="w-[100px] text-right">
-                SL Thực (2)
+              <TableHead className="w-24 text-center font-semibold">
+                ĐVT
               </TableHead>
-              <TableHead className="w-[120px] text-right">
-                Đơn giá (3)
+              <TableHead className="w-32 text-right font-semibold">
+                SL Chứng từ{" "}
+                <span className="text-destructive font-bold">*</span>
               </TableHead>
-              <TableHead className="w-[130px] text-right">
-                Thành tiền (4)
+              <TableHead className="w-32 text-right font-semibold">
+                SL Thực nhập{" "}
+                <span className="text-destructive font-bold">*</span>
               </TableHead>
-              <TableHead className="w-[150px]">Ghi chú</TableHead>
-              {!isReadOnly && <TableHead className="w-[40px]"></TableHead>}
+              <TableHead className="w-36 text-right font-semibold">
+                Đơn giá (VNĐ){" "}
+                <span className="text-destructive font-bold">*</span>
+              </TableHead>
+              <TableHead className="w-40 text-right font-semibold">
+                Thành tiền
+              </TableHead>
+              <TableHead className="min-w-[160px] font-semibold">
+                Ghi chú dòng
+              </TableHead>
+              <TableHead className="w-12 text-center"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {items.map((row, idx) => {
-              const amount =
-                Number(row.actualQty || 0) * Number(row.unitPrice || 0);
+              const selectedProduct = products.find(
+                (p) => p.id === row.productId,
+              );
+
               return (
-                <TableRow key={idx}>
-                  <TableCell className="text-center font-medium text-xs">
+                <TableRow key={idx} className="hover:bg-muted/20 group">
+                  <TableCell className="text-center text-sm font-medium text-muted-foreground">
                     {idx + 1}
                   </TableCell>
-                  <TableCell>
-                    {isReadOnly ? (
-                      <span className="font-medium text-xs">
-                        {row.productNameSnapshot}
-                      </span>
-                    ) : (
-                      <Select
-                        value={row.productId}
-                        onValueChange={(val) =>
-                          handleProductChange(idx, val || "")
-                        }
-                      >
-                        <SelectTrigger className="h-8 text-xs">
-                          <SelectValue placeholder="Chọn vật tư" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {products.map((p) => (
-                            <SelectItem key={p.id} value={p.id}>
-                              {p.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    )}
+
+                  <TableCell className="py-2.5">
+                    <Select
+                      items={productSelectItems}
+                      value={row.productId}
+                      onValueChange={(val: string | null) =>
+                        handleProductChange(idx, val)
+                      }
+                    >
+                      <SelectTrigger className="h-9 text-sm font-medium w-full text-left truncate shadow-none">
+                        <SelectValue placeholder="Chọn vật tư..." />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-64 min-w-[360px]">
+                        {productSelectItems.map((item) => (
+                          <SelectItem
+                            key={item.value}
+                            value={item.value}
+                            className="text-sm"
+                          >
+                            {item.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </TableCell>
-                  <TableCell className="text-xs text-muted-foreground">
-                    {row.productCode || "—"}
+
+                  <TableCell className="text-center text-sm text-muted-foreground font-medium">
+                    {row.unitSnapshot || selectedProduct?.unit || "—"}
                   </TableCell>
-                  <TableCell className="text-xs">{row.unitSnapshot}</TableCell>
-                  <TableCell>
+
+                  <TableCell className="py-2.5">
                     <Input
                       type="number"
-                      step="any"
                       min="0"
-                      disabled={isReadOnly}
-                      className="h-8 text-right text-xs"
+                      step="0.001"
                       value={row.docQty}
                       onChange={(e) =>
-                        handleFieldChange(idx, "docQty", e.target.value)
+                        handleChange(idx, "docQty", Number(e.target.value))
                       }
+                      className="h-9 text-sm text-right font-mono shadow-none"
                     />
                   </TableCell>
-                  <TableCell>
+
+                  <TableCell className="py-2.5">
                     <Input
                       type="number"
-                      step="any"
                       min="0"
-                      disabled={isReadOnly}
-                      className="h-8 text-right text-xs font-semibold"
+                      step="0.001"
                       value={row.actualQty}
                       onChange={(e) =>
-                        handleFieldChange(idx, "actualQty", e.target.value)
+                        handleChange(idx, "actualQty", Number(e.target.value))
                       }
+                      className="h-9 text-sm text-right font-mono font-bold text-primary shadow-none border-primary/40 focus-visible:ring-primary/40"
                     />
                   </TableCell>
-                  <TableCell>
+
+                  <TableCell className="py-2.5">
                     <Input
                       type="number"
-                      step="any"
                       min="0"
-                      disabled={isReadOnly}
-                      className="h-8 text-right text-xs"
+                      step="100"
                       value={row.unitPrice}
                       onChange={(e) =>
-                        handleFieldChange(idx, "unitPrice", e.target.value)
+                        handleChange(idx, "unitPrice", Number(e.target.value))
                       }
+                      className="h-9 text-sm text-right font-mono shadow-none"
                     />
                   </TableCell>
-                  <TableCell className="text-right font-semibold text-xs">
-                    {new Intl.NumberFormat("vi-VN").format(amount)} ₫
+
+                  <TableCell className="text-right font-mono font-bold text-sm text-foreground whitespace-nowrap bg-muted/10">
+                    {formatCurrencyVND(
+                      Number(row.actualQty || 0) * Number(row.unitPrice || 0),
+                    )}
                   </TableCell>
-                  <TableCell>
+
+                  <TableCell className="py-2.5">
                     <Input
-                      disabled={isReadOnly}
-                      placeholder="Hao hụt..."
-                      className="h-8 text-xs"
+                      type="text"
+                      placeholder="Ghi chú chi tiết..."
                       value={row.note || ""}
                       onChange={(e) =>
-                        handleFieldChange(idx, "note", e.target.value)
+                        handleChange(idx, "note", e.target.value)
                       }
+                      className="h-9 text-sm shadow-none bg-transparent"
                     />
                   </TableCell>
-                  {!isReadOnly && (
-                    <TableCell>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                        disabled={items.length <= 1}
-                        onClick={() => removeItemRow(idx)}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </TableCell>
-                  )}
+
+                  <TableCell className="text-center">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      type="button"
+                      onClick={() => removeItem(idx)}
+                      disabled={items.length <= 1}
+                      className="h-8 w-8 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
                 </TableRow>
               );
             })}
           </TableBody>
         </Table>
 
-        {/* Tổng cộng & bằng chữ */}
-        <div className="p-4 bg-muted/20 border-t space-y-1.5">
-          <div className="flex justify-between items-center text-sm font-semibold">
-            <span>Cộng thành tiền (Cột 4):</span>
-            <span className="text-base text-primary">
-              {new Intl.NumberFormat("vi-VN").format(totalAmount)} VNĐ
+        <div className="p-4 bg-muted/30 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-t">
+          <div className="text-sm text-muted-foreground">
+            Bằng chữ:{" "}
+            <span className="font-semibold text-foreground italic">
+              {totalAmountWords || "Không đồng"}
             </span>
           </div>
-          {totalAmountWords && (
-            <div className="text-xs text-muted-foreground italic">
-              <strong>Bằng chữ (Mục [10]):</strong> {totalAmountWords}
-            </div>
-          )}
+          <div className="flex items-center gap-3 font-mono">
+            <span className="font-semibold text-muted-foreground uppercase text-xs tracking-wider">
+              Tổng cộng:
+            </span>
+            <span className="text-xl font-bold text-primary">
+              {formatCurrencyVND(total)}
+            </span>
+          </div>
         </div>
       </CardContent>
     </Card>

@@ -20,3 +20,4 @@ app/components/ui/
 app/components/ui/**
 app/app.css
 app/lib/utils.ts
+app/hooks/use-mobile.ts

@@ -8,6 +8,7 @@ import { DeleteGoodsReceiptUseCase } from "#/application/use-cases/delete-goods-
 import { GetGoodsReceiptDetailUseCase } from "#/application/use-cases/get-goods-receipt-detail.use-case";
 import { ListGoodsReceiptsUseCase } from "#/application/use-cases/list-goods-receipts.use-case";
 import { UpdateGoodsReceiptUseCase } from "#/application/use-cases/update-goods-receipt.use-case";
+import { EntityNotFoundError } from "#/domain/exceptions/domain.exception";
 
 export class GoodsReceiptController {
   constructor(
@@ -24,9 +25,27 @@ export class GoodsReceiptController {
     next: NextFunction,
   ): Promise<void> => {
     try {
-      const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 20;
-      const result = await this.listUseCase.execute(page, limit);
+      const page = req.query.page
+        ? parseInt(req.query.page as string, 10)
+        : undefined;
+      const limit = req.query.limit
+        ? parseInt(req.query.limit as string, 10)
+        : undefined;
+      const search = req.query.search as string | undefined;
+      const fromDate = req.query.fromDate as string | undefined;
+      const toDate = req.query.toDate as string | undefined;
+      const warehouseId = req.query.warehouseId as string | undefined;
+      const status = req.query.status as string | undefined;
+
+      const result = await this.listUseCase.execute({
+        page,
+        limit,
+        search,
+        fromDate,
+        toDate,
+        warehouseId,
+        status,
+      });
 
       res.status(200).json({
         success: true,
@@ -52,6 +71,9 @@ export class GoodsReceiptController {
     try {
       const id = req.params.id as string;
       const data = await this.detailUseCase.execute(id);
+      if (!data) {
+        throw new EntityNotFoundError("Phiếu nhập kho", id);
+      }
 
       res.status(200).json({
         success: true,

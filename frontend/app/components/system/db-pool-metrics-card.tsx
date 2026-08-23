@@ -1,87 +1,54 @@
-import { Database, Hourglass, PauseCircle, Zap } from "lucide-react";
+import { Database } from "lucide-react";
 
+import type { ReadinessResponse } from "~/services/system.service";
+
+import { Badge } from "~/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 
-interface DbPoolMetricsCardProps {
-  poolTotal?: number;
-  poolIdle?: number;
-  poolWaiting?: number;
+export interface DbPoolMetricsCardProps {
+  readiness?: ReadinessResponse;
+  data?: ReadinessResponse;
 }
 
-export function DbPoolMetricsCard({
-  poolTotal = 10,
-  poolIdle = 8,
-  poolWaiting = 0,
-}: DbPoolMetricsCardProps) {
-  const poolActive = Math.max(0, poolTotal - poolIdle);
-  const activePercentage =
-    poolTotal > 0 ? Math.round((poolActive / poolTotal) * 100) : 0;
+export function DbPoolMetricsCard({ readiness, data }: DbPoolMetricsCardProps) {
+  const r = readiness || data;
+  const isHealthy = r?.status === "READY" || r?.checks?.database === "HEALTHY";
+  const poolTotal = r?.checks?.poolTotal ?? 10;
+  const poolIdle = r?.checks?.poolIdle ?? 8;
+  const poolWaiting = r?.checks?.poolWaiting ?? 0;
 
   return (
     <Card>
-      <CardHeader className="py-4 px-6 border-b flex flex-row items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Database className="h-4 w-4 text-primary" />
-          <CardTitle className="text-base font-semibold">
-            PostgreSQL Connection Pool
-          </CardTitle>
-        </div>
-        <span className="text-xs font-mono text-muted-foreground">
-          Max Pool: {poolTotal}
-        </span>
+      <CardHeader className="py-3 px-4 border-b flex flex-row items-center justify-between">
+        <CardTitle className="text-xs font-semibold flex items-center gap-2">
+          <Database className="h-4 w-4 text-primary" /> PostgreSQL Connection
+          Pool
+        </CardTitle>
+        <Badge
+          variant={isHealthy ? "default" : "destructive"}
+          className="text-[10px]"
+        >
+          {isHealthy ? "HEALTHY" : "DOWN"}
+        </Badge>
       </CardHeader>
-      <CardContent className="p-6 space-y-6">
-        {/* Progress Bar thể hiện tỷ lệ sử dụng Pool */}
-        <div className="space-y-2">
-          <div className="flex justify-between text-xs font-medium">
-            <span>Độ bão hòa Connection Pool</span>
-            <span>{activePercentage}%</span>
-          </div>
-          <div className="w-full bg-secondary h-2.5 rounded-full overflow-hidden flex">
-            <div
-              className={`h-full transition-all duration-500 ${
-                activePercentage > 80
-                  ? "bg-rose-500"
-                  : activePercentage > 50
-                    ? "bg-amber-500"
-                    : "bg-primary"
-              }`}
-              style={{ width: `${activePercentage}%` }}
-            />
-          </div>
+      <CardContent className="p-4 grid grid-cols-3 gap-2 text-center">
+        <div className="p-2 rounded bg-muted/40">
+          <p className="text-[10px] text-muted-foreground">Total Connections</p>
+          <p className="text-sm font-bold font-mono text-foreground">
+            {poolTotal}
+          </p>
         </div>
-
-        {/* 3 Thẻ Metric nhỏ */}
-        <div className="grid grid-cols-3 gap-3">
-          <div className="border rounded-md p-3 text-center bg-muted/10 space-y-1">
-            <div className="flex justify-center text-primary">
-              <Zap className="h-4 w-4" />
-            </div>
-            <div className="text-lg font-bold">{poolActive}</div>
-            <div className="text-[11px] text-muted-foreground">
-              Active (Đang dùng)
-            </div>
-          </div>
-
-          <div className="border rounded-md p-3 text-center bg-muted/10 space-y-1">
-            <div className="flex justify-center text-emerald-600">
-              <PauseCircle className="h-4 w-4" />
-            </div>
-            <div className="text-lg font-bold">{poolIdle}</div>
-            <div className="text-[11px] text-muted-foreground">
-              Idle (Sẵn sàng)
-            </div>
-          </div>
-
-          <div className="border rounded-md p-3 text-center bg-muted/10 space-y-1">
-            <div className="flex justify-center text-amber-600">
-              <Hourglass className="h-4 w-4" />
-            </div>
-            <div className="text-lg font-bold">{poolWaiting}</div>
-            <div className="text-[11px] text-muted-foreground">
-              Waiting (Hàng đợi)
-            </div>
-          </div>
+        <div className="p-2 rounded bg-muted/40">
+          <p className="text-[10px] text-muted-foreground">Idle Connections</p>
+          <p className="text-sm font-bold font-mono text-emerald-600 dark:text-emerald-400">
+            {poolIdle}
+          </p>
+        </div>
+        <div className="p-2 rounded bg-muted/40">
+          <p className="text-[10px] text-muted-foreground">Waiting Queries</p>
+          <p className="text-sm font-bold font-mono text-amber-600 dark:text-amber-400">
+            {poolWaiting}
+          </p>
         </div>
       </CardContent>
     </Card>
